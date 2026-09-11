@@ -21,16 +21,22 @@ public final class DesktopOpener {
     private DesktopOpener() {}
 
     public static void open(Path path) throws IOException {
+        open(path.toString());
+    }
+
+    /** Same mechanism as {@link #open(Path)}, but also works for http(s) URLs, since xdg-open,
+     * macOS's open, and Windows's url.dll handler all accept a URL just as readily as a path. */
+    public static void open(String target) throws IOException {
         String os = System.getProperty("os.name", "").toLowerCase();
         ProcessBuilder pb;
         if (os.contains("win")) {
-            pb = new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", path.toString());
+            pb = new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", target);
         } else if (os.contains("mac")) {
-            pb = new ProcessBuilder("open", path.toString());
+            pb = new ProcessBuilder("open", target);
         } else {
-            pb = new ProcessBuilder("xdg-open", path.toString());
+            pb = new ProcessBuilder("xdg-open", target);
         }
-        LOGGER.info("Opening file with OS default application: {}", path);
+        LOGGER.info("Opening with OS default application: {}", target);
         pb.start();
     }
 }

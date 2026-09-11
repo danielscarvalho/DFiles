@@ -1,3 +1,5 @@
+<img src="docs/DFile-Logo.png" alt="DFiles logo" width="96" height="96">
+
 # DFiles
 
 ### A fast, modern file manager built with JavaFX

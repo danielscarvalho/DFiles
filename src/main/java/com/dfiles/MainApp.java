@@ -2,10 +2,10 @@ package com.dfiles;
 
 import com.dfiles.db.Database;
 import com.dfiles.i18n.I18n;
-import com.dfiles.ui.AppIconFactory;
 import com.dfiles.ui.MainController;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.apache.logging.log4j.LogManager;
@@ -39,11 +39,7 @@ public class MainApp extends Application {
         scene.getStylesheets().add(getClass().getResource("/css/dfiles.css").toExternalForm());
 
         stage.setTitle(I18n.t("app.title"));
-        stage.getIcons().addAll(
-                AppIconFactory.create(256),
-                AppIconFactory.create(128),
-                AppIconFactory.create(64),
-                AppIconFactory.create(32));
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/icons/DFile-Logo.png")));
         stage.setScene(scene);
         stage.show();
 

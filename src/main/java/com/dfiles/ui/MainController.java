@@ -239,13 +239,36 @@ public class MainController {
         return top;
     }
 
+    private static final String GITHUB_URL = "https://github.com/danielscarvalho/DFiles";
+
     private void showAboutDialog() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(I18n.t("about.title"));
         alert.setHeaderText("DFiles " + APP_VERSION);
         alert.setContentText(I18n.t("about.body"));
         alert.getDialogPane().setMinWidth(480);
-        alert.showAndWait();
+
+        var logoStream = getClass().getResourceAsStream("/icons/DFile-Logo.png");
+        if (logoStream != null) {
+            javafx.scene.image.ImageView logo = new javafx.scene.image.ImageView(new javafx.scene.image.Image(logoStream));
+            logo.setFitWidth(64);
+            logo.setFitHeight(64);
+            alert.setGraphic(logo);
+        }
+
+        ButtonType githubButton = new ButtonType(I18n.t("about.viewOnGitHub"));
+        alert.getButtonTypes().setAll(githubButton, ButtonType.CLOSE);
+
+        alert.showAndWait().ifPresent(response -> {
+            if (response == githubButton) {
+                try {
+                    DesktopOpener.open(GITHUB_URL);
+                } catch (IOException e) {
+                    LOGGER.error("Could not open {}", GITHUB_URL, e);
+                    showError(I18n.t("dialog.error.title"), I18n.t("error.openUrl", GITHUB_URL));
+                }
+            }
+        });
     }
 
     /** Unpacks the bundled help page next to the database (so it survives as a real file the
