@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DFiles Help</title>
+<style>
+    :root {
+        --accent: #3584e4;
+        --bg: #ffffff;
+        --panel-bg: #f6f6f4;
+        --border: #d8d6d1;
+        --text: #2b2b28;
+        --dim: #6b6a66;
+        --code-bg: #efeeeb;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: -apple-system, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.55;
+    }
+    header {
+        background: var(--accent);
+        color: white;
+        padding: 28px 32px;
+    }
+    header h1 { margin: 0 0 4px 0; font-size: 26px; }
+    header p { margin: 0; opacity: 0.92; font-size: 15px; }
+    .layout {
+        display: flex;
+        align-items: flex-start;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    nav {
+        position: sticky;
+        top: 0;
+        width: 220px;
+        flex: 0 0 220px;
+        padding: 24px 16px;
+        background: var(--panel-bg);
+        border-right: 1px solid var(--border);
+        height: 100vh;
+        overflow-y: auto;
+    }
+    nav h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin: 0 0 8px 0; }
+    nav ul { list-style: none; padding: 0; margin: 0 0 20px 0; }
+    nav li { margin: 2px 0; }
+    nav a { color: var(--text); text-decoration: none; font-size: 14px; display: block; padding: 4px 8px; border-radius: 6px; }
+    nav a:hover { background: #e2e0dc; }
+    main { flex: 1; padding: 24px 32px 64px 32px; min-width: 0; }
+    section { margin-bottom: 40px; }
+    section h2 {
+        font-size: 20px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+        margin-top: 0;
+    }
+    section h3 { font-size: 15px; margin-bottom: 4px; }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0; padding-left: 22px; }
+    li { margin: 4px 0; }
+    code, kbd {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: "SF Mono", Consolas, Monaco, monospace;
+        font-size: 13px;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--dim); font-weight: 600; }
+    .tip {
+        background: var(--code-bg);
+        border-left: 3px solid var(--accent);
+        padding: 10px 14px;
+        border-radius: 0 6px 6px 0;
+        font-size: 14px;
+        margin: 12px 0;
+    }
+    footer { text-align: center; color: var(--dim); font-size: 12px; padding: 24px; }
+    @media (max-width: 800px) {
+        .layout { flex-direction: column; }
+        nav { position: static; width: auto; flex: none; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>DFiles</h1>
+    <p>A JavaFX file manager — quick reference and help</p>
+</header>
+
+<div class="layout">
+<nav>
+    <h2>Contents</h2>
+    <ul>
+        <li><a href="#getting-started">Getting started</a></li>
+        <li><a href="#navigation">Navigation</a></li>
+        <li><a href="#places">Places &amp; bookmarks</a></li>
+        <li><a href="#table">File table</a></li>
+        <li><a href="#actions">File &amp; folder actions</a></li>
+        <li><a href="#archives">Archives</a></li>
+        <li><a href="#text-tools">Text file tools</a></li>
+        <li><a href="#git">Git integration</a></li>
+        <li><a href="#terminal-code">Terminal &amp; VS Code</a></li>
+        <li><a href="#layout">Layout &amp; language</a></li>
+        <li><a href="#shortcuts">Keyboard shortcuts</a></li>
+        <li><a href="#data">Where DFiles stores data</a></li>
+    </ul>
+</nav>
+
+<main>
+
+<section id="getting-started">
+    <h2>Getting started</h2>
+    <p>
+        DFiles is a two-pane file manager: a sidebar of <strong>Places</strong> and <strong>Bookmarks</strong>
+        on the left, and the contents of the current folder on the right. Click any place or bookmark, or
+        double-click a folder in the table, to navigate into it.
+    </p>
+    <img src="screenshot.png" alt="DFiles main window" style="max-width:100%; border:1px solid var(--border); border-radius:8px; margin: 8px 0 16px 0;">
+    <div class="tip">
+        The folder you're viewing is watched for changes in the background, so files added, removed, or
+        edited elsewhere show up automatically — no manual refresh needed (though a refresh button is
+        there too).
+    </div>
+</section>
+
+<section id="navigation">
+    <h2>Navigation</h2>
+    <table>
+        <tr><th>Control</th><th>What it does</th></tr>
+        <tr><td>◀ / ▶</td><td>Back / forward through your navigation history</td></tr>
+        <tr><td>⬆</td><td>Go up to the parent folder</td></tr>
+        <tr><td>⟳</td><td>Refresh the current folder</td></tr>
+        <tr><td>Address bar</td><td>Type or paste a path and press Enter to jump there</td></tr>
+        <tr><td>☰</td><td>Show or hide the sidebar</td></tr>
+    </table>
+</section>
+
+<section id="places">
+    <h2>Places &amp; bookmarks</h2>
+    <p>
+        The <strong>Places</strong> section lists your standard folders (Home, Desktop, Documents, Downloads,
+        Music, Pictures, Videos, and Computer for the filesystem root). Folders that don't exist yet are
+        created automatically so they always show up.
+    </p>
+    <p>
+        Click <strong>Add Folder…</strong> to bookmark any folder you use often; it appears under
+        <strong>Bookmarks</strong>. Right-click a bookmark to remove it, or right-click any place or
+        bookmark to see its <strong>Properties</strong>.
+    </p>
+    <p>
+        Drag the thin divider between Places and Bookmarks to resize them, and drag the divider between the
+        sidebar and the file table to resize the whole sidebar.
+    </p>
+</section>
+
+<section id="table">
+    <h2>File table</h2>
+    <p>
+        Click a column header (Name, Size, Type, Date Modified) to sort by it — click again to reverse the
+        order. Your sort choice and whether hidden files are shown are remembered per folder.
+    </p>
+    <ul>
+        <li>The <strong>👁</strong> toggle shows or hides dotfiles / hidden entries.</li>
+        <li>The search box filters the current folder's contents live as you type.</li>
+        <li>Selecting a single file shows its Unix-style permission string in the status bar
+            (e.g. <code>-rw-r--r--  1 user group 1024 jan 5 2026</code>).</li>
+        <li><strong>📋 Copy File List</strong> copies the visible listing as tab-separated text to the
+            clipboard.</li>
+    </ul>
+</section>
+
+<section id="actions">
+    <h2>File &amp; folder actions</h2>
+    <p>Right-click a file or folder (or empty space, for folder-level actions) for a context menu including:</p>
+    <ul>
+        <li><strong>Open</strong> / <strong>Open With Default Application</strong> — uses your OS's file associations</li>
+        <li><strong>Cut, Copy, Paste, Rename, Delete</strong> — delete asks for confirmation first</li>
+        <li><strong>New Folder / New File</strong> — also available as toolbar buttons</li>
+        <li><strong>Copy Path</strong> — copies the full path to the clipboard</li>
+        <li><strong>Properties</strong> — path, type, size (or item count for folders), modified date, and permissions</li>
+    </ul>
+</section>
+
+<section id="archives">
+    <h2>Archives</h2>
+    <p>Double-clicking a zip, tar, tar.gz, tar.bz2, tar.xz, rar, or 7z file opens a listing of its contents
+        instead of trying to run it. From there, or directly from the context menu:</p>
+    <ul>
+        <li><strong>Show Contents…</strong> — lists every entry in the archive</li>
+        <li><strong>Extract Here</strong> — extracts directly into the current folder</li>
+        <li><strong>Compress…</strong> (on any folder) — pick a name and a format (zip is always available;
+            tar-based formats and 7z appear automatically if the matching command-line tool is installed on
+            your system)</li>
+    </ul>
+</section>
+
+<section id="text-tools">
+    <h2>Text file tools</h2>
+    <p>For recognized text files (txt, log, json, csv, xml, source code, and similar), the context menu adds:</p>
+    <ul>
+        <li><strong>View Head/Tail…</strong> — the first and last 100 lines, useful for skimming a large log
+            without loading the whole thing</li>
+        <li><strong>Find and Replace…</strong> — plain text or regular-expression search and replace with a
+            live preview. <em>The original file is never modified</em> — saving writes a new
+            <code>name_v1.ext</code>, <code>name_v2.ext</code>, and so on, numbered to avoid overwriting any
+            previous version.</li>
+    </ul>
+</section>
+
+<section id="git">
+    <h2>Git integration</h2>
+    <p>
+        When the current folder is inside a Git repository, the <strong>Git</strong> toolbar menu becomes
+        active with Status, Pull, Push, Commit…, Log, and Init (to start a new repository). Output from each
+        command appears in a panel at the bottom of the window.
+    </p>
+</section>
+
+<section id="terminal-code">
+    <h2>Terminal &amp; VS Code</h2>
+    <ul>
+        <li><strong>Open Terminal</strong> (toolbar) or <strong>Open Terminal Here</strong> (context menu) —
+            opens a terminal window at the current or selected folder</li>
+        <li><strong>Open in VS Code</strong> — opens the folder (or a file's parent folder) in Visual Studio
+            Code, if the <code>code</code> command is installed</li>
+    </ul>
+</section>
+
+<section id="layout">
+    <h2>Layout &amp; language</h2>
+    <p>
+        The language selector supports English, Español, Français, and Português — the whole interface
+        updates immediately. On first launch, DFiles matches your operating system's language automatically
+        if one of these is supported, otherwise it starts in English; once you pick a language yourself,
+        that choice is remembered.
+    </p>
+</section>
+
+<section id="shortcuts">
+    <h2>Keyboard shortcuts</h2>
+    <table>
+        <tr><th>Key</th><th>Action</th></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Open the selected item</td></tr>
+        <tr><td><kbd>Backspace</kbd></td><td>Go up to the parent folder</td></tr>
+        <tr><td><kbd>F2</kbd></td><td>Rename the selected item</td></tr>
+        <tr><td><kbd>Delete</kbd></td><td>Delete the selected item(s)</td></tr>
+    </table>
+</section>
+
+<section id="data">
+    <h2>Where DFiles stores data</h2>
+    <p>
+        DFiles keeps a small SQLite database at <code>~/.dfiles/dfiles.sqlite</code> for bookmarks, window
+        and language preferences, per-folder sort settings, and a cache that lets folders you've visited
+        before paint instantly. Application logs are written to <code>~/.dfiles/dfiles.log</code>.
+    </p>
+</section>
+
+</main>
+</div>
+
+<footer>DFiles — built with JavaFX</footer>
+
+</body>
+</html>

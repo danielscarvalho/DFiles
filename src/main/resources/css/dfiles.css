@@ -1,0 +1,105 @@
+.root {
+    -fx-font-size: 12px;
+    -fx-base: #f6f6f4;
+}
+
+.left-pane {
+    -fx-background-color: #f0efec;
+    -fx-border-color: transparent #d8d6d1 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.section-header {
+    -fx-text-fill: #8a8880;
+}
+
+.places-list, .bookmarks-list {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.places-list .list-cell, .bookmarks-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5 8 5 10;
+    -fx-background-radius: 6;
+}
+
+.places-list .list-cell:filled:selected, .bookmarks-list .list-cell:filled:selected {
+    -fx-background-color: #3584e4;
+    -fx-text-fill: white;
+}
+
+/* Icon glyphs live in their own Label (separate from the adjacent name/text Label) so
+   this font list only has to cover pictographic characters, never regular UI text.
+   JavaFX resolves one physical font per text run, so mixing an emoji font into a run
+   that also has to render plain Latin text is what causes ordinary labels to break. */
+.icon-glyph {
+    -fx-font-family: "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Noto Emoji", "Symbola", sans-serif;
+    -fx-font-size: 14px;
+}
+
+.icon-badge {
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-translate-y: 4px;
+}
+
+.places-list .list-cell:filled:selected .label,
+.bookmarks-list .list-cell:filled:selected .label {
+    -fx-text-fill: white;
+}
+
+.places-list .list-cell:filled:hover, .bookmarks-list .list-cell:filled:hover {
+    -fx-background-color: #e2e0dc;
+}
+
+.file-table {
+    -fx-background-color: white;
+}
+
+.file-table .column-header-background {
+    -fx-background-color: #efeeeb;
+}
+
+.file-table .table-row-cell:odd {
+    -fx-background-color: #fafaf9;
+}
+
+.file-table .table-row-cell:selected {
+    -fx-background-color: #3584e4;
+    -fx-text-fill: white;
+}
+
+.file-table .table-row-cell:selected .label {
+    -fx-text-fill: white;
+}
+
+.status-bar {
+    -fx-background-color: #efeeeb;
+    -fx-border-color: #d8d6d1 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.status-dim {
+    -fx-text-fill: #8a8880;
+    -fx-font-size: 11px;
+}
+
+.git-panel {
+    -fx-background-color: #1e1e1e;
+    -fx-padding: 6;
+}
+
+.git-output {
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #d6d6d6;
+    -fx-font-family: monospace;
+}
+
+.headtail-output {
+    -fx-control-inner-background: #0c1a0c;
+    -fx-text-fill: #33ff33;
+    -fx-highlight-fill: #206020;
+    -fx-highlight-text-fill: #d6ffd6;
+    -fx-font-family: monospace;
+}

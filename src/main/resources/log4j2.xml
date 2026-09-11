@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_DIR">${sys:user.home}/.dfiles</Property>
+    </Properties>
+
+    <Appenders>
+        <RollingFile name="FileLog"
+                     fileName="${LOG_DIR}/dfiles.log"
+                     filePattern="${LOG_DIR}/dfiles-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{1} - %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="5 MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+        <Console name="ConsoleLog" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{1} - %msg%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.dfiles" level="INFO" additivity="false">
+            <AppenderRef ref="FileLog"/>
+            <AppenderRef ref="ConsoleLog"/>
+        </Logger>
+        <Root level="WARN">
+            <AppenderRef ref="FileLog"/>
+        </Root>
+    </Loggers>
+</Configuration>
