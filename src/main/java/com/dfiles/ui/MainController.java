@@ -853,7 +853,7 @@ public class MainController {
         TextArea textArea = new TextArea(content.toString());
         textArea.setEditable(false);
         textArea.setWrapText(false);
-        textArea.getStyleClass().add("headtail-output");
+        textArea.getStyleClass().add("terminal-output");
 
         Stage dialogStage = new Stage();
         Button closeButton = new Button(I18n.t("dialog.headtail.close"));
@@ -881,7 +881,7 @@ public class MainController {
         TextArea textArea = new TextArea(I18n.t("status.loading"));
         textArea.setEditable(false);
         textArea.setWrapText(false);
-        textArea.getStyleClass().add("git-output");
+        textArea.getStyleClass().add("terminal-output");
 
         Stage dialogStage = new Stage();
         Button extractButton = new Button(I18n.t("context.extractHere"));

@@ -96,7 +96,7 @@
     -fx-font-family: monospace;
 }
 
-.headtail-output {
+.terminal-output {
     -fx-control-inner-background: #0c1a0c;
     -fx-text-fill: #33ff33;
     -fx-highlight-fill: #206020;
