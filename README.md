@@ -100,13 +100,19 @@ hash, run output, and created/updated timestamps) in `~/.dfiles/dfiles.sqlite`, 
 
 ## Documentation
 
-Generate API docs (Javadoc) for the codebase:
+A pre-built copy of the API docs (Javadoc) is committed under [`docs/javadoc/`](docs/javadoc/index.html) —
+clone the repo and open `docs/javadoc/index.html` locally, or enable GitHub Pages
+(Settings → Pages → Deploy from branch → `main` / `docs`) to serve it at
+`https://<user>.github.io/DFiles/javadoc/`.
+
+To regenerate it after making changes:
 
 ```bash
 mvn javadoc:javadoc
 ```
 
-Output lands in `target/reports/apidocs/index.html`. User-facing help is bundled in the app itself
+This writes fresh output to `target/reports/apidocs/`; copy it over `docs/javadoc/` to update the
+committed copy. User-facing help is bundled in the app itself
 (`src/main/resources/help/help_*.html`, one file per supported language) and opens from the
 toolbar's Help button.
 

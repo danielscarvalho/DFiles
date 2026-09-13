@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.dfiles"},{"l":"com.dfiles.db"},{"l":"com.dfiles.i18n"},{"l":"com.dfiles.model"},{"l":"com.dfiles.service"},{"l":"com.dfiles.ui"},{"l":"com.dfiles.util"}];updateSearchResults();
