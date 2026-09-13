@@ -2,6 +2,7 @@ package com.dfiles.db;
 
 import com.dfiles.model.CustomFolder;
 import com.dfiles.model.FileItem;
+import com.dfiles.model.ScriptDetails;
 import com.dfiles.model.ScriptEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,9 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Owns the .dfiles/dfiles.sqlite file used to persist bookmarks, app settings,
- * per-folder view preferences and a filesystem cache that lets folders paint
- * instantly on repeat visits (the real listing is refreshed right after, in the background).
+ * Owns the {@code ~/.dfiles/dfiles.sqlite} file used to persist bookmarks, app settings,
+ * per-folder view preferences, saved AI-assisted bash scripts, and a filesystem cache that lets
+ * folders paint instantly on repeat visits (the real listing is refreshed right after, in the
+ * background).
+ *
+ * <p>All public methods are {@code synchronized}: the single underlying {@link Connection} is
+ * shared by the JavaFX Application Thread and the various background worker threads this app
+ * uses for scanning, git, and script execution, and SQLite connections are not safe for
+ * concurrent use from multiple threads without external locking.
  */
 public class Database {
 
@@ -80,10 +87,36 @@ public class Database {
                 CREATE TABLE IF NOT EXISTS scripts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL UNIQUE,
+                    prompt TEXT NOT NULL DEFAULT '',
                     content TEXT NOT NULL DEFAULT '',
+                    last_output TEXT NOT NULL DEFAULT '',
                     updated_at INTEGER NOT NULL
                 )
             """);
+        }
+        // Migration path for databases created before prompt/last_output existed.
+        ensureColumn("scripts", "prompt", "TEXT NOT NULL DEFAULT ''");
+        ensureColumn("scripts", "last_output", "TEXT NOT NULL DEFAULT ''");
+    }
+
+    /** Adds {@code column} to {@code table} if it isn't already there — a lightweight, additive
+     * migration mechanism so older .dfiles/dfiles.sqlite files pick up new columns in place. */
+    private void ensureColumn(String table, String column, String columnDefinitionSql) throws SQLException {
+        boolean exists = false;
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    exists = true;
+                    break;
+                }
+            }
+        }
+        if (!exists) {
+            try (Statement st = connection.createStatement()) {
+                st.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + columnDefinitionSql);
+                LOGGER.info("Migrated database: added column {}.{}", table, column);
+            }
         }
     }
 
@@ -256,16 +289,21 @@ public class Database {
         return result;
     }
 
-    public synchronized String getScriptContent(String name) {
-        try (PreparedStatement ps = connection.prepareStatement("SELECT content FROM scripts WHERE name = ?")) {
+    /** Returns the prompt, content and last run output saved for {@code name}, or three empty
+     * strings if the script doesn't exist (which callers can treat the same as "nothing saved yet"). */
+    public synchronized ScriptDetails getScriptDetails(String name) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT prompt, content, last_output FROM scripts WHERE name = ?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getString("content");
+                if (rs.next()) {
+                    return new ScriptDetails(rs.getString("prompt"), rs.getString("content"), rs.getString("last_output"));
+                }
             }
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
         }
-        return "";
+        return new ScriptDetails("", "", "");
     }
 
     /** Creates the script if the name is new, or returns false if it already exists. */
@@ -282,12 +320,28 @@ public class Database {
         }
     }
 
-    public synchronized void saveScriptContent(String name, String content) {
+    /** Saves the prompt and script content together — used by the Script Development tab's
+     * Save button, which commits both fields in one step. */
+    public synchronized void saveScript(String name, String prompt, String content) {
         try (PreparedStatement ps = connection.prepareStatement(
-                "UPDATE scripts SET content = ?, updated_at = ? WHERE name = ?")) {
-            ps.setString(1, content);
-            ps.setLong(2, System.currentTimeMillis());
-            ps.setString(3, name);
+                "UPDATE scripts SET prompt = ?, content = ?, updated_at = ? WHERE name = ?")) {
+            ps.setString(1, prompt);
+            ps.setString(2, content);
+            ps.setLong(3, System.currentTimeMillis());
+            ps.setString(4, name);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+        }
+    }
+
+    /** Records the output from the most recent test run of {@code name}, independent of saving
+     * the script itself (so re-running a script updates its saved output without requiring an
+     * explicit Save). */
+    public synchronized void saveScriptOutput(String name, String output) {
+        try (PreparedStatement ps = connection.prepareStatement("UPDATE scripts SET last_output = ? WHERE name = ?")) {
+            ps.setString(1, output);
+            ps.setString(2, name);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);

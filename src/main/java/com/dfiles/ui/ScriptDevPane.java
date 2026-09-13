@@ -1,10 +1,13 @@
 package com.dfiles.ui;
 
 import com.dfiles.i18n.I18n;
+import com.dfiles.service.AiProvider;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
@@ -12,13 +15,19 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 
 import java.util.function.Consumer;
 
 /**
  * Tab 2 content: an AI-assisted bash script workspace split into three mouse-resizable rows —
- * a prompt sent to an LLM, the resulting (or hand-edited) script, and a terminal-style view of
- * running it.
+ * a prompt sent to an LLM (with a choice of AI backend), the resulting or hand-edited script,
+ * and a terminal-style view of running it.
+ *
+ * <p>This class only builds and exposes the view; it owns no persistence or process-running
+ * logic itself. {@link com.dfiles.ui.MainController} wires its callbacks to
+ * {@link com.dfiles.service.AiScriptService}, {@link com.dfiles.service.ScriptRunner} and the
+ * {@link com.dfiles.db.Database}.
  */
 public class ScriptDevPane {
 
@@ -30,6 +39,7 @@ public class ScriptDevPane {
     private final Button runPromptButton = new Button();
     private final Button runScriptButton = new Button();
     private final Button saveButton = new Button();
+    private final ComboBox<AiProvider> providerCombo = new ComboBox<>();
     private final Label promptRowLabel = new Label();
     private final Label scriptRowLabel = new Label();
     private final Label terminalRowLabel = new Label();
@@ -38,6 +48,7 @@ public class ScriptDevPane {
     private Consumer<String> onRunPrompt;
     private Runnable onRunScript;
     private Runnable onSave;
+    private Consumer<AiProvider> onProviderChange;
 
     private String currentScriptName;
 
@@ -50,6 +61,16 @@ public class ScriptDevPane {
         terminalArea.setEditable(false);
         terminalArea.setWrapText(false);
         terminalArea.getStyleClass().add("terminal-output");
+
+        providerCombo.setItems(FXCollections.observableArrayList(AiProvider.values()));
+        providerCombo.setValue(AiProvider.OPENAI);
+        providerCombo.setConverter(new StringConverter<>() {
+            @Override public String toString(AiProvider p) { return p == null ? "" : p.getDisplayName(); }
+            @Override public AiProvider fromString(String s) { return providerCombo.getValue(); }
+        });
+        providerCombo.setOnAction(e -> {
+            if (onProviderChange != null) onProviderChange.accept(providerCombo.getValue());
+        });
 
         runPromptButton.setOnAction(e -> {
             if (onRunPrompt != null && !promptArea.getText().isBlank()) onRunPrompt.accept(promptArea.getText());
@@ -65,7 +86,7 @@ public class ScriptDevPane {
 
         noScriptLabel.getStyleClass().add("status-dim");
 
-        HBox promptHeader = new HBox(8, promptRowLabel, spacer(), runPromptButton);
+        HBox promptHeader = new HBox(8, promptRowLabel, spacer(), providerCombo, runPromptButton);
         promptHeader.setAlignment(Pos.CENTER_LEFT);
         VBox promptRow = new VBox(4, promptHeader, promptArea);
         promptRow.setPadding(new Insets(6));
@@ -98,6 +119,8 @@ public class ScriptDevPane {
         return r;
     }
 
+    /** Re-reads every label, button and placeholder from {@link I18n} — called once at startup
+     * and again whenever the user switches language. */
     public void applyLabels() {
         promptRowLabel.setText(I18n.t("scriptdev.promptLabel"));
         scriptRowLabel.setText(I18n.t("scriptdev.scriptLabel") + (currentScriptName == null ? "" : ":"));
@@ -109,19 +132,24 @@ public class ScriptDevPane {
         noScriptLabel.setText(currentScriptName == null ? I18n.t("scripts.noneSelected") : "");
     }
 
-    public void loadScript(String name, String content) {
+    /** Populates all three rows from a script's saved state and enables the Save/Run Script
+     * actions, which are disabled until a script has been loaded or created. */
+    public void loadScript(String name, String prompt, String content, String lastOutput) {
         this.currentScriptName = name;
         scriptNameLabel.setText(name);
-        scriptArea.setText(content);
-        terminalArea.clear();
+        promptArea.setText(prompt == null ? "" : prompt);
+        scriptArea.setText(content == null ? "" : content);
+        terminalArea.setText(lastOutput == null ? "" : lastOutput);
         runScriptButton.setDisable(false);
         saveButton.setDisable(false);
         applyLabels();
     }
 
+    /** Resets the pane to its empty, no-script-loaded state (e.g. after the loaded script is deleted). */
     public void clearScript() {
         this.currentScriptName = null;
         scriptNameLabel.setText("");
+        promptArea.clear();
         scriptArea.clear();
         terminalArea.clear();
         runScriptButton.setDisable(true);
@@ -129,11 +157,20 @@ public class ScriptDevPane {
         applyLabels();
     }
 
+    /** Selects which AI backend the provider combo box shows, without firing the change callback
+     * (used when restoring the persisted choice at startup). */
+    public void setProvider(AiProvider provider) {
+        providerCombo.setValue(provider);
+    }
+
+    public AiProvider getProvider() { return providerCombo.getValue(); }
     public String getCurrentScriptName() { return currentScriptName; }
+    public String getPromptText() { return promptArea.getText(); }
     public String getScriptContent() { return scriptArea.getText(); }
     public void setScriptContent(String content) { scriptArea.setText(content); }
     public void appendTerminalLine(String line) { terminalArea.appendText(line + "\n"); }
     public void clearTerminal() { terminalArea.clear(); }
+    public String getTerminalText() { return terminalArea.getText(); }
     public void setPromptBusy(boolean busy) { runPromptButton.setDisable(busy); }
     public void setScriptRunning(boolean running) { runScriptButton.setDisable(running); }
 
@@ -141,4 +178,5 @@ public class ScriptDevPane {
     public void setOnRunPrompt(Consumer<String> onRunPrompt) { this.onRunPrompt = onRunPrompt; }
     public void setOnRunScript(Runnable onRunScript) { this.onRunScript = onRunScript; }
     public void setOnSave(Runnable onSave) { this.onSave = onSave; }
+    public void setOnProviderChange(Consumer<AiProvider> onProviderChange) { this.onProviderChange = onProviderChange; }
 }

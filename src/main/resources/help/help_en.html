@@ -108,6 +108,7 @@
         <li><a href="#text-tools">Text file tools</a></li>
         <li><a href="#git">Git integration</a></li>
         <li><a href="#terminal-code">Terminal &amp; VS Code</a></li>
+        <li><a href="#scripts">AI-assisted scripts</a></li>
         <li><a href="#layout">Layout &amp; language</a></li>
         <li><a href="#shortcuts">Keyboard shortcuts</a></li>
         <li><a href="#data">Where DFiles stores data</a></li>
@@ -234,6 +235,45 @@
     </ul>
 </section>
 
+<section id="scripts">
+    <h2>AI-assisted scripts</h2>
+    <p>
+        The <strong>Scripts</strong> section in the sidebar lists bash scripts you've saved, stored in
+        DFiles' own database rather than as files in the folder you're browsing. Click
+        <strong>Add Script…</strong> to name a new one; right-click an existing script for
+        <strong>Rename…</strong> or <strong>Delete</strong>.
+    </p>
+    <p>
+        Selecting or creating a script switches to the <strong>Script Development</strong> tab, a
+        workspace split into three rows you can resize by dragging the dividers between them:
+    </p>
+    <ol>
+        <li><strong>AI Prompt</strong> — describe what you want in plain English and click
+            <strong>Run Prompt</strong> to have an AI backend write the script for you.</li>
+        <li><strong>Script</strong> — the generated (or hand-written/edited) bash script. Click
+            <strong>Save</strong> to store the prompt and script together.</li>
+        <li><strong>Terminal</strong> — click <strong>Run Script</strong> to execute the script against
+            whatever folder you currently have open in the Files tab, with its combined output streamed
+            here live. The output from the last run is saved automatically, so it's still there next time
+            you open the script.</li>
+    </ol>
+    <p>
+        A dropdown next to Run Prompt chooses which AI backend writes the script:
+    </p>
+    <ul>
+        <li><strong>OpenAI</strong> — DFiles reads the <code>OPENAI_API_KEY</code> environment variable at
+            request time; it is never stored or logged. Set it before launching DFiles.</li>
+        <li><strong>Local (Llamafile)</strong> — talks to a
+            <a href="https://github.com/Mozilla-Ocho/llamafile">Llamafile</a> server running on your own
+            machine at <code>http://localhost:8080</code>, using the same OpenAI-compatible request format.
+            No API key is needed, and nothing leaves your computer.</li>
+    </ul>
+    <div class="tip">
+        Scripts under test are written to a temporary file in <code>&lt;OS temp folder&gt;/.dfiles/</code>
+        and deleted again as soon as the run finishes.
+    </div>
+</section>
+
 <section id="layout">
     <h2>Layout &amp; language</h2>
     <p>
@@ -259,8 +299,10 @@
     <h2>Where DFiles stores data</h2>
     <p>
         DFiles keeps a small SQLite database at <code>~/.dfiles/dfiles.sqlite</code> for bookmarks, window
-        and language preferences, per-folder sort settings, and a cache that lets folders you've visited
-        before paint instantly. Application logs are written to <code>~/.dfiles/dfiles.log</code>.
+        and language preferences, per-folder sort settings, saved scripts (with their prompts and last
+        run output), and a cache that lets folders you've visited before paint instantly. Application logs
+        are written to <code>~/.dfiles/dfiles.log</code>, and scripts under test run from a scratch folder
+        at <code>&lt;OS temp folder&gt;/.dfiles/</code>.
     </p>
 </section>
 

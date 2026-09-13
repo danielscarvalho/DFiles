@@ -3,6 +3,7 @@ package com.dfiles.ui;
 import com.dfiles.db.Database;
 import com.dfiles.i18n.I18n;
 import com.dfiles.model.FileItem;
+import com.dfiles.service.AiProvider;
 import com.dfiles.service.AiScriptService;
 import com.dfiles.service.ArchiveService;
 import com.dfiles.service.DesktopOpener;
@@ -154,6 +155,8 @@ public class MainController {
         scriptDevPane.setOnRunPrompt(this::runAiPrompt);
         scriptDevPane.setOnRunScript(this::runCurrentScript);
         scriptDevPane.setOnSave(this::saveCurrentScript);
+        scriptDevPane.setOnProviderChange(provider -> db.setSetting("ai_provider", provider.name()));
+        scriptDevPane.setProvider(AiProvider.fromSettingValue(db.getSetting("ai_provider", null)));
 
         filesPane.setOnOpen(this::openItem);
         filesPane.setOnSelectionChanged(sel -> updateStatusBar());
@@ -296,15 +299,23 @@ public class MainController {
 
     /** Unpacks the bundled help page next to the database (so it survives as a real file the
      * OS browser can open) and launches it with the system default application, same as any
-     * other file — kept off the FX thread for the same reason DesktopOpener always is. */
+     * other file — kept off the FX thread for the same reason DesktopOpener always is.
+     *
+     * <p>Picks the help file matching the current UI language (e.g. {@code help_es.html}),
+     * falling back to {@code help_en.html} if a translation for that language isn't bundled. */
     private void openHelp() {
         Thread worker = new Thread(() -> {
             try {
                 Path helpDir = Paths.get(System.getProperty("user.home"), ".dfiles");
                 Files.createDirectories(helpDir);
-                extractResource("/help/help.html", helpDir.resolve("help.html"));
+                String lang = I18n.getLocale().getLanguage();
+                String resourceName = "help_" + lang + ".html";
+                if (getClass().getResource("/help/" + resourceName) == null) {
+                    resourceName = "help_en.html";
+                }
+                extractResource("/help/" + resourceName, helpDir.resolve(resourceName));
                 extractResource("/help/screenshot.png", helpDir.resolve("screenshot.png"));
-                DesktopOpener.open(helpDir.resolve("help.html"));
+                DesktopOpener.open(helpDir.resolve(resourceName));
             } catch (IOException e) {
                 LOGGER.error("Could not open help page", e);
                 Platform.runLater(() -> showError(I18n.t("dialog.error.title"), I18n.t("error.help", e.getMessage())));
@@ -1185,9 +1196,11 @@ public class MainController {
 
     // ---------------- scripts ----------------
 
+    /** Loads a saved script's prompt, content and last output into the Script Development tab
+     * and switches to it. */
     private void openScript(String name) {
-        String content = db.getScriptContent(name);
-        scriptDevPane.loadScript(name, content);
+        var details = db.getScriptDetails(name);
+        scriptDevPane.loadScript(name, details.prompt(), details.content(), details.lastOutput());
         centerTabs.getSelectionModel().select(scriptDevTab);
     }
 
@@ -1224,7 +1237,7 @@ public class MainController {
             }
             leftPane.setScripts(db.listScripts());
             if (oldName.equals(scriptDevPane.getCurrentScriptName())) {
-                scriptDevPane.loadScript(trimmed, scriptDevPane.getScriptContent());
+                openScript(trimmed);
             }
         });
     }
@@ -1245,11 +1258,15 @@ public class MainController {
         });
     }
 
+    /** Sends the AI Prompt row's text to whichever provider is selected and, on success, drops
+     * the result straight into the Script row (it is not auto-saved — the user still reviews
+     * and clicks Save). Runs off the FX thread since this is a network call. */
     private void runAiPrompt(String prompt) {
+        AiProvider provider = scriptDevPane.getProvider();
         scriptDevPane.setPromptBusy(true);
         Thread worker = new Thread(() -> {
             try {
-                String script = AiScriptService.generateScript(prompt);
+                String script = AiScriptService.generateScript(prompt, provider);
                 Platform.runLater(() -> {
                     scriptDevPane.setScriptContent(script);
                     scriptDevPane.setPromptBusy(false);
@@ -1266,9 +1283,13 @@ public class MainController {
         worker.start();
     }
 
+    /** Runs the Script row's current content against the currently browsed folder, streaming
+     * output into the Terminal row. The output is persisted to the database as the script's
+     * "last output" as soon as the run finishes, independent of the explicit Save action. */
     private void runCurrentScript() {
         String content = scriptDevPane.getScriptContent();
         if (content == null || content.isBlank()) return;
+        String name = scriptDevPane.getCurrentScriptName();
         scriptDevPane.clearTerminal();
         scriptDevPane.setScriptRunning(true);
         Path workDir = currentDirectory != null ? currentDirectory : Paths.get(System.getProperty("user.home"));
@@ -1282,20 +1303,23 @@ public class MainController {
             public void onFinished(int exitCode) {
                 scriptDevPane.appendTerminalLine(I18n.t("status.scriptFinished", exitCode));
                 scriptDevPane.setScriptRunning(false);
+                if (name != null) db.saveScriptOutput(name, scriptDevPane.getTerminalText());
             }
 
             @Override
             public void onError(Exception e) {
                 scriptDevPane.appendTerminalLine("Error: " + e.getMessage());
                 scriptDevPane.setScriptRunning(false);
+                if (name != null) db.saveScriptOutput(name, scriptDevPane.getTerminalText());
             }
         });
     }
 
+    /** Persists the prompt and script content shown in the Script Development tab. */
     private void saveCurrentScript() {
         String name = scriptDevPane.getCurrentScriptName();
         if (name == null) return;
-        db.saveScriptContent(name, scriptDevPane.getScriptContent());
+        db.saveScript(name, scriptDevPane.getPromptText(), scriptDevPane.getScriptContent());
         statusLabel.setText(I18n.t("status.scriptSaved", name));
         javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
         pause.setOnFinished(e -> updateStatusBar());

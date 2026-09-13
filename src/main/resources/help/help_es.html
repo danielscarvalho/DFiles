@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ayuda de DFiles</title>
+<style>
+    :root {
+        --accent: #3584e4;
+        --bg: #ffffff;
+        --panel-bg: #f6f6f4;
+        --border: #d8d6d1;
+        --text: #2b2b28;
+        --dim: #6b6a66;
+        --code-bg: #efeeeb;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: -apple-system, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.55;
+    }
+    header {
+        background: var(--accent);
+        color: white;
+        padding: 28px 32px;
+    }
+    header h1 { margin: 0 0 4px 0; font-size: 26px; }
+    header p { margin: 0; opacity: 0.92; font-size: 15px; }
+    .layout {
+        display: flex;
+        align-items: flex-start;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    nav {
+        position: sticky;
+        top: 0;
+        width: 220px;
+        flex: 0 0 220px;
+        padding: 24px 16px;
+        background: var(--panel-bg);
+        border-right: 1px solid var(--border);
+        height: 100vh;
+        overflow-y: auto;
+    }
+    nav h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin: 0 0 8px 0; }
+    nav ul { list-style: none; padding: 0; margin: 0 0 20px 0; }
+    nav li { margin: 2px 0; }
+    nav a { color: var(--text); text-decoration: none; font-size: 14px; display: block; padding: 4px 8px; border-radius: 6px; }
+    nav a:hover { background: #e2e0dc; }
+    main { flex: 1; padding: 24px 32px 64px 32px; min-width: 0; }
+    section { margin-bottom: 40px; }
+    section h2 {
+        font-size: 20px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+        margin-top: 0;
+    }
+    section h3 { font-size: 15px; margin-bottom: 4px; }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0; padding-left: 22px; }
+    li { margin: 4px 0; }
+    code, kbd {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: "SF Mono", Consolas, Monaco, monospace;
+        font-size: 13px;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--dim); font-weight: 600; }
+    .tip {
+        background: var(--code-bg);
+        border-left: 3px solid var(--accent);
+        padding: 10px 14px;
+        border-radius: 0 6px 6px 0;
+        font-size: 14px;
+        margin: 12px 0;
+    }
+    footer { text-align: center; color: var(--dim); font-size: 12px; padding: 24px; }
+    @media (max-width: 800px) {
+        .layout { flex-direction: column; }
+        nav { position: static; width: auto; flex: none; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>DFiles</h1>
+    <p>Un gestor de archivos en JavaFX — referencia rápida y ayuda</p>
+</header>
+
+<div class="layout">
+<nav>
+    <h2>Contenido</h2>
+    <ul>
+        <li><a href="#getting-started">Primeros pasos</a></li>
+        <li><a href="#navigation">Navegación</a></li>
+        <li><a href="#places">Lugares y marcadores</a></li>
+        <li><a href="#table">Tabla de archivos</a></li>
+        <li><a href="#actions">Acciones sobre archivos y carpetas</a></li>
+        <li><a href="#archives">Archivos comprimidos</a></li>
+        <li><a href="#text-tools">Herramientas de texto</a></li>
+        <li><a href="#git">Integración con Git</a></li>
+        <li><a href="#terminal-code">Terminal y VS Code</a></li>
+        <li><a href="#scripts">Scripts asistidos por IA</a></li>
+        <li><a href="#layout">Diseño e idioma</a></li>
+        <li><a href="#shortcuts">Atajos de teclado</a></li>
+        <li><a href="#data">Dónde guarda datos DFiles</a></li>
+    </ul>
+</nav>
+
+<main>
+
+<section id="getting-started">
+    <h2>Primeros pasos</h2>
+    <p>
+        DFiles es un gestor de archivos de dos paneles: una barra lateral con <strong>Lugares</strong> y
+        <strong>Marcadores</strong> a la izquierda, y el contenido de la carpeta actual a la derecha. Haz
+        clic en cualquier lugar o marcador, o haz doble clic en una carpeta de la tabla, para navegar a ella.
+    </p>
+    <img src="screenshot.png" alt="Ventana principal de DFiles" style="max-width:100%; border:1px solid var(--border); border-radius:8px; margin: 8px 0 16px 0;">
+    <div class="tip">
+        La carpeta que estás viendo se vigila en segundo plano, así que los archivos añadidos, eliminados o
+        editados en otro lugar aparecen automáticamente — no hace falta actualizar a mano (aunque también
+        hay un botón de actualizar).
+    </div>
+</section>
+
+<section id="navigation">
+    <h2>Navegación</h2>
+    <table>
+        <tr><th>Control</th><th>Qué hace</th></tr>
+        <tr><td>◀ / ▶</td><td>Retrocede / avanza en tu historial de navegación</td></tr>
+        <tr><td>⬆</td><td>Sube a la carpeta superior</td></tr>
+        <tr><td>⟳</td><td>Actualiza la carpeta actual</td></tr>
+        <tr><td>Barra de dirección</td><td>Escribe o pega una ruta y pulsa Enter para ir allí</td></tr>
+        <tr><td>☰</td><td>Muestra u oculta el panel lateral</td></tr>
+    </table>
+</section>
+
+<section id="places">
+    <h2>Lugares y marcadores</h2>
+    <p>
+        La sección <strong>Lugares</strong> muestra tus carpetas estándar (Inicio, Escritorio, Documentos,
+        Descargas, Música, Imágenes, Vídeos y Equipo para la raíz del sistema de archivos). Las carpetas que
+        aún no existen se crean automáticamente para que siempre aparezcan.
+    </p>
+    <p>
+        Haz clic en <strong>Añadir carpeta…</strong> para marcar cualquier carpeta que uses a menudo;
+        aparecerá bajo <strong>Marcadores</strong>. Haz clic derecho en un marcador para eliminarlo, o en
+        cualquier lugar o marcador para ver sus <strong>Propiedades</strong>.
+    </p>
+    <p>
+        Arrastra el divisor entre Lugares y Marcadores para redimensionarlos, y el divisor entre el panel
+        lateral y la tabla de archivos para redimensionar todo el panel lateral.
+    </p>
+</section>
+
+<section id="table">
+    <h2>Tabla de archivos</h2>
+    <p>
+        Haz clic en el encabezado de una columna (Nombre, Tamaño, Tipo, Fecha de modificación) para ordenar
+        por ella — vuelve a hacer clic para invertir el orden. Tu elección de orden y si se muestran los
+        archivos ocultos se recuerdan por carpeta.
+    </p>
+    <ul>
+        <li>El interruptor <strong>👁</strong> muestra u oculta los archivos ocultos.</li>
+        <li>El cuadro de búsqueda filtra el contenido de la carpeta actual en tiempo real mientras escribes.</li>
+        <li>Seleccionar un único archivo muestra su cadena de permisos estilo Unix en la barra de estado
+            (p. ej. <code>-rw-r--r--  1 usuario grupo 1024 ene 5 2026</code>).</li>
+        <li><strong>📋 Copiar lista de archivos</strong> copia el listado visible como texto separado por
+            tabulaciones al portapapeles.</li>
+    </ul>
+</section>
+
+<section id="actions">
+    <h2>Acciones sobre archivos y carpetas</h2>
+    <p>Haz clic derecho en un archivo o carpeta (o en un espacio vacío, para acciones a nivel de carpeta) para
+        ver un menú contextual que incluye:</p>
+    <ul>
+        <li><strong>Abrir</strong> / <strong>Abrir con la aplicación predeterminada</strong> — usa las
+            asociaciones de archivo de tu sistema</li>
+        <li><strong>Cortar, Copiar, Pegar, Renombrar, Eliminar</strong> — eliminar pide confirmación primero</li>
+        <li><strong>Nueva carpeta / Nuevo archivo</strong> — también disponibles como botones de la barra
+            de herramientas</li>
+        <li><strong>Copiar ruta</strong> — copia la ruta completa al portapapeles</li>
+        <li><strong>Propiedades</strong> — ruta, tipo, tamaño (o número de elementos para carpetas), fecha
+            de modificación y permisos</li>
+    </ul>
+</section>
+
+<section id="archives">
+    <h2>Archivos comprimidos</h2>
+    <p>Al hacer doble clic en un archivo zip, tar, tar.gz, tar.bz2, tar.xz, rar o 7z se abre un listado de su
+        contenido en lugar de intentar ejecutarlo. Desde allí, o directamente desde el menú contextual:</p>
+    <ul>
+        <li><strong>Ver contenido…</strong> — lista todas las entradas del archivo</li>
+        <li><strong>Extraer aquí</strong> — extrae directamente en la carpeta actual</li>
+        <li><strong>Comprimir…</strong> (en cualquier carpeta) — elige un nombre y un formato (zip siempre
+            está disponible; los formatos basados en tar y 7z aparecen automáticamente si la herramienta de
+            línea de comandos correspondiente está instalada en tu sistema)</li>
+    </ul>
+</section>
+
+<section id="text-tools">
+    <h2>Herramientas de texto</h2>
+    <p>Para archivos de texto reconocidos (txt, log, json, csv, xml, código fuente y similares), el menú
+        contextual añade:</p>
+    <ul>
+        <li><strong>Ver inicio/final…</strong> — las primeras y últimas 100 líneas, útil para revisar un
+            registro grande sin cargarlo entero</li>
+        <li><strong>Buscar y reemplazar…</strong> — búsqueda y reemplazo de texto plano o expresión regular
+            con vista previa en vivo. <em>El archivo original nunca se modifica</em> — al guardar se crea un
+            nuevo <code>nombre_v1.ext</code>, <code>nombre_v2.ext</code>, y así sucesivamente, numerados para
+            no sobrescribir ninguna versión anterior.</li>
+    </ul>
+</section>
+
+<section id="git">
+    <h2>Integración con Git</h2>
+    <p>
+        Cuando la carpeta actual está dentro de un repositorio Git, el menú <strong>Git</strong> de la barra
+        de herramientas se activa con Estado, Actualizar (Pull), Enviar (Push), Confirmar…, Historial e
+        Inicializar (para crear un nuevo repositorio). La salida de cada comando aparece en un panel en la
+        parte inferior de la ventana.
+    </p>
+</section>
+
+<section id="terminal-code">
+    <h2>Terminal y VS Code</h2>
+    <ul>
+        <li><strong>Abrir terminal</strong> (barra de herramientas) o <strong>Abrir terminal aquí</strong>
+            (menú contextual) — abre una ventana de terminal en la carpeta actual o seleccionada</li>
+        <li><strong>Abrir en VS Code</strong> — abre la carpeta (o la carpeta contenedora de un archivo) en
+            Visual Studio Code, si el comando <code>code</code> está instalado</li>
+    </ul>
+</section>
+
+<section id="scripts">
+    <h2>Scripts asistidos por IA</h2>
+    <p>
+        La sección <strong>Scripts</strong> del panel lateral lista los scripts bash que has guardado,
+        almacenados en la propia base de datos de DFiles y no como archivos en la carpeta que estás
+        explorando. Haz clic en <strong>Añadir script…</strong> para nombrar uno nuevo; haz clic derecho en
+        un script existente para <strong>Renombrar…</strong> o <strong>Eliminar</strong>.
+    </p>
+    <p>
+        Al seleccionar o crear un script se cambia a la pestaña <strong>Desarrollo de scripts</strong>, un
+        espacio de trabajo dividido en tres filas que puedes redimensionar arrastrando los divisores entre
+        ellas:
+    </p>
+    <ol>
+        <li><strong>Instrucción para la IA</strong> — describe lo que quieres en lenguaje natural y haz clic
+            en <strong>Ejecutar instrucción</strong> para que un backend de IA escriba el script por ti.</li>
+        <li><strong>Script</strong> — el script bash generado (o escrito/editado a mano). Haz clic en
+            <strong>Guardar</strong> para almacenar juntos la instrucción y el script.</li>
+        <li><strong>Terminal</strong> — haz clic en <strong>Ejecutar script</strong> para ejecutarlo contra la
+            carpeta que tengas abierta en la pestaña Archivos, con su salida combinada transmitida aquí en
+            vivo. La salida de la última ejecución se guarda automáticamente, así que sigue ahí la próxima
+            vez que abras el script.</li>
+    </ol>
+    <p>
+        Un menú desplegable junto a Ejecutar instrucción elige qué backend de IA escribe el script:
+    </p>
+    <ul>
+        <li><strong>OpenAI</strong> — DFiles lee la variable de entorno <code>OPENAI_API_KEY</code> en el
+            momento de la solicitud; nunca se almacena ni se registra. Configúrala antes de iniciar DFiles.</li>
+        <li><strong>Local (Llamafile)</strong> — se comunica con un servidor
+            <a href="https://github.com/Mozilla-Ocho/llamafile">Llamafile</a> ejecutándose en tu propia
+            máquina en <code>http://localhost:8080</code>, usando el mismo formato de solicitud compatible
+            con OpenAI. No necesita clave de API y nada sale de tu ordenador.</li>
+    </ul>
+    <div class="tip">
+        Los scripts en prueba se escriben en un archivo temporal en
+        <code>&lt;carpeta temporal del sistema&gt;/.dfiles/</code> y se eliminan de nuevo en cuanto termina
+        la ejecución.
+    </div>
+</section>
+
+<section id="layout">
+    <h2>Diseño e idioma</h2>
+    <p>
+        El selector de idioma admite English, Español, Français y Português — toda la interfaz se actualiza
+        al instante. En el primer inicio, DFiles hace coincidir automáticamente el idioma de tu sistema
+        operativo si es uno de estos, y si no, empieza en inglés; en cuanto eliges un idioma tú mismo, esa
+        elección se recuerda.
+    </p>
+</section>
+
+<section id="shortcuts">
+    <h2>Atajos de teclado</h2>
+    <table>
+        <tr><th>Tecla</th><th>Acción</th></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Abre el elemento seleccionado</td></tr>
+        <tr><td><kbd>Retroceso</kbd></td><td>Sube a la carpeta superior</td></tr>
+        <tr><td><kbd>F2</kbd></td><td>Renombra el elemento seleccionado</td></tr>
+        <tr><td><kbd>Supr</kbd></td><td>Elimina el/los elemento(s) seleccionado(s)</td></tr>
+    </table>
+</section>
+
+<section id="data">
+    <h2>Dónde guarda datos DFiles</h2>
+    <p>
+        DFiles mantiene una pequeña base de datos SQLite en <code>~/.dfiles/dfiles.sqlite</code> para
+        marcadores, preferencias de ventana e idioma, ajustes de orden por carpeta, scripts guardados (con
+        sus instrucciones y la salida de la última ejecución), y una caché que permite que las carpetas ya
+        visitadas se pinten al instante. Los registros de la aplicación se escriben en
+        <code>~/.dfiles/dfiles.log</code>, y los scripts en prueba se ejecutan desde una carpeta temporal en
+        <code>&lt;carpeta temporal del sistema&gt;/.dfiles/</code>.
+    </p>
+</section>
+
+</main>
+</div>
+
+<footer>DFiles — creado con JavaFX</footer>
+
+</body>
+</html>
