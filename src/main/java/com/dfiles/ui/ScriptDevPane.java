@@ -11,6 +11,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -33,6 +34,7 @@ public class ScriptDevPane {
 
     private final VBox root = new VBox();
     private final Label scriptNameLabel = new Label();
+    private final Label scriptHashLabel = new Label();
     private final TextArea promptArea = new TextArea();
     private final TextArea scriptArea = new TextArea();
     private final TextArea terminalArea = new TextArea();
@@ -85,6 +87,7 @@ public class ScriptDevPane {
         saveButton.setDisable(true);
 
         noScriptLabel.getStyleClass().add("status-dim");
+        scriptHashLabel.getStyleClass().add("status-dim");
 
         HBox promptHeader = new HBox(8, promptRowLabel, spacer(), providerCombo, runPromptButton);
         promptHeader.setAlignment(Pos.CENTER_LEFT);
@@ -92,7 +95,7 @@ public class ScriptDevPane {
         promptRow.setPadding(new Insets(6));
         VBox.setVgrow(promptArea, Priority.ALWAYS);
 
-        HBox scriptHeader = new HBox(8, scriptRowLabel, scriptNameLabel, noScriptLabel, spacer(), saveButton);
+        HBox scriptHeader = new HBox(8, scriptRowLabel, scriptNameLabel, scriptHashLabel, noScriptLabel, spacer(), saveButton);
         scriptHeader.setAlignment(Pos.CENTER_LEFT);
         VBox scriptRow = new VBox(4, scriptHeader, scriptArea);
         scriptRow.setPadding(new Insets(6));
@@ -134,12 +137,13 @@ public class ScriptDevPane {
 
     /** Populates all three rows from a script's saved state and enables the Save/Run Script
      * actions, which are disabled until a script has been loaded or created. */
-    public void loadScript(String name, String prompt, String content, String lastOutput) {
+    public void loadScript(String name, String prompt, String content, String lastOutput, String hash) {
         this.currentScriptName = name;
         scriptNameLabel.setText(name);
         promptArea.setText(prompt == null ? "" : prompt);
         scriptArea.setText(content == null ? "" : content);
         terminalArea.setText(lastOutput == null ? "" : lastOutput);
+        setScriptHash(hash);
         runScriptButton.setDisable(false);
         saveButton.setDisable(false);
         applyLabels();
@@ -152,9 +156,23 @@ public class ScriptDevPane {
         promptArea.clear();
         scriptArea.clear();
         terminalArea.clear();
+        setScriptHash(null);
         runScriptButton.setDisable(true);
         saveButton.setDisable(true);
         applyLabels();
+    }
+
+    /** Shows a short prefix of the script's content hash next to its name (full hash in the
+     * tooltip), or clears the label if {@code hash} is null/blank — used both when a script is
+     * loaded and after a Save recomputes the hash for the just-edited content. */
+    public void setScriptHash(String hash) {
+        if (hash == null || hash.isBlank()) {
+            scriptHashLabel.setText("");
+            scriptHashLabel.setTooltip(null);
+            return;
+        }
+        scriptHashLabel.setText("#" + hash.substring(0, Math.min(10, hash.length())));
+        scriptHashLabel.setTooltip(new Tooltip(hash));
     }
 
     /** Selects which AI backend the provider combo box shows, without firing the change callback

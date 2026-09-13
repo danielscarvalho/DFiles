@@ -8,9 +8,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -18,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -90,13 +94,45 @@ public class Database {
                     prompt TEXT NOT NULL DEFAULT '',
                     content TEXT NOT NULL DEFAULT '',
                     last_output TEXT NOT NULL DEFAULT '',
+                    hash TEXT NOT NULL DEFAULT '',
                     updated_at INTEGER NOT NULL
                 )
             """);
         }
-        // Migration path for databases created before prompt/last_output existed.
+        // Migration path for databases created before prompt/last_output/hash existed.
         ensureColumn("scripts", "prompt", "TEXT NOT NULL DEFAULT ''");
         ensureColumn("scripts", "last_output", "TEXT NOT NULL DEFAULT ''");
+        ensureColumn("scripts", "hash", "TEXT NOT NULL DEFAULT ''");
+        backfillScriptHashes();
+    }
+
+    /** One-time backfill for rows left over from before the {@code hash} column existed, so
+     * scripts saved in an older version of DFiles get a hash without needing to be re-saved. */
+    private void backfillScriptHashes() throws SQLException {
+        try (Statement select = connection.createStatement();
+             ResultSet rs = select.executeQuery("SELECT id, content FROM scripts WHERE hash = ''")) {
+            try (PreparedStatement update = connection.prepareStatement("UPDATE scripts SET hash = ? WHERE id = ?")) {
+                while (rs.next()) {
+                    update.setString(1, sha256Hex(rs.getString("content")));
+                    update.setInt(2, rs.getInt("id"));
+                    update.addBatch();
+                }
+                update.executeBatch();
+            }
+        }
+    }
+
+    /** Hex-encoded SHA-256 digest of {@code content}, used as a script's content fingerprint —
+     * it changes whenever the script's text changes, so it can be used to tell two saved
+     * versions of a script apart or confirm a script matches what was originally generated. */
+    private static String sha256Hex(String content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is a required MessageDigest algorithm", e);
+        }
     }
 
     /** Adds {@code column} to {@code table} if it isn't already there — a lightweight, additive
@@ -289,30 +325,33 @@ public class Database {
         return result;
     }
 
-    /** Returns the prompt, content and last run output saved for {@code name}, or three empty
-     * strings if the script doesn't exist (which callers can treat the same as "nothing saved yet"). */
+    /** Returns the prompt, content, last run output and content hash saved for {@code name}, or
+     * empty strings if the script doesn't exist (which callers can treat the same as "nothing
+     * saved yet"). */
     public synchronized ScriptDetails getScriptDetails(String name) {
         try (PreparedStatement ps = connection.prepareStatement(
-                "SELECT prompt, content, last_output FROM scripts WHERE name = ?")) {
+                "SELECT prompt, content, last_output, hash FROM scripts WHERE name = ?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new ScriptDetails(rs.getString("prompt"), rs.getString("content"), rs.getString("last_output"));
+                    return new ScriptDetails(rs.getString("prompt"), rs.getString("content"),
+                            rs.getString("last_output"), rs.getString("hash"));
                 }
             }
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
         }
-        return new ScriptDetails("", "", "");
+        return new ScriptDetails("", "", "", "");
     }
 
     /** Creates the script if the name is new, or returns false if it already exists. */
     public synchronized boolean createScript(String name, String content) {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT OR IGNORE INTO scripts(name, content, updated_at) VALUES (?, ?, ?)")) {
+                "INSERT OR IGNORE INTO scripts(name, content, hash, updated_at) VALUES (?, ?, ?, ?)")) {
             ps.setString(1, name);
             ps.setString(2, content);
-            ps.setLong(3, System.currentTimeMillis());
+            ps.setString(3, sha256Hex(content));
+            ps.setLong(4, System.currentTimeMillis());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
@@ -321,18 +360,22 @@ public class Database {
     }
 
     /** Saves the prompt and script content together — used by the Script Development tab's
-     * Save button, which commits both fields in one step. */
-    public synchronized void saveScript(String name, String prompt, String content) {
+     * Save button, which commits both fields in one step — and recomputes the content hash.
+     * Returns the new hash so the caller can refresh what it displays without a second query. */
+    public synchronized String saveScript(String name, String prompt, String content) {
+        String hash = sha256Hex(content);
         try (PreparedStatement ps = connection.prepareStatement(
-                "UPDATE scripts SET prompt = ?, content = ?, updated_at = ? WHERE name = ?")) {
+                "UPDATE scripts SET prompt = ?, content = ?, hash = ?, updated_at = ? WHERE name = ?")) {
             ps.setString(1, prompt);
             ps.setString(2, content);
-            ps.setLong(3, System.currentTimeMillis());
-            ps.setString(4, name);
+            ps.setString(3, hash);
+            ps.setLong(4, System.currentTimeMillis());
+            ps.setString(5, name);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
         }
+        return hash;
     }
 
     /** Records the output from the most recent test run of {@code name}, independent of saving
