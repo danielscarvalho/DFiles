@@ -6,14 +6,14 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 /**
- * Small wrapper around ResourceBundle for the app's four supported locales.
+ * Small wrapper around ResourceBundle for the app's five supported locales.
  * The UI is rebuilt (not live-rebound) when the locale changes, so lookups
  * just need to reflect whatever locale was last set.
  */
 public final class I18n {
 
     public static final List<Locale> SUPPORTED = List.of(
-            Locale.ENGLISH, Locale.of("es"), Locale.FRENCH, Locale.of("pt")
+            Locale.ENGLISH, Locale.of("es"), Locale.FRENCH, Locale.of("pt"), Locale.ITALIAN
     );
 
     private static Locale currentLocale = Locale.ENGLISH;
@@ -55,6 +55,7 @@ public final class I18n {
             case "es" -> "Español";
             case "fr" -> "Français";
             case "pt" -> "Português";
+            case "it" -> "Italiano";
             default -> "English";
         };
     }
