@@ -6,6 +6,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,8 +34,20 @@ public final class AiScriptService {
             "fences and do not include any explanation before or after the script — output the script " +
             "content only.";
 
+    /** Used for {@link AiProvider#OPENAI}, which needs the JVM's normal (possibly proxied)
+     * internet route. */
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
+            .build();
+
+    /** Used for {@link AiProvider#LOCAL_LLAMAFILE}. Explicitly bypasses any system-configured
+     * HTTP proxy: unlike browsers, {@link HttpClient} does not exempt localhost from the JVM's
+     * default proxy selector, so on a machine with a proxy set, a request to
+     * {@code http://localhost:8080} would otherwise be routed through it and fail — even though
+     * the same URL works fine from a browser or {@code curl}, which do exempt localhost. */
+    private static final HttpClient LOCAL_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .proxy(ProxySelector.of(null))
             .build();
 
     private AiScriptService() {}
@@ -72,14 +85,16 @@ public final class AiScriptService {
             requestBuilder.header("Authorization", "Bearer " + apiKey);
         }
 
+        HttpClient client = provider == AiProvider.LOCAL_LLAMAFILE ? LOCAL_CLIENT : CLIENT;
         LOGGER.info("Requesting script generation from {} ({} chars prompt)", provider.getDisplayName(), prompt.length());
         HttpResponse<String> response;
         try {
-            response = CLIENT.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
+            String detail = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
             throw new IOException(provider == AiProvider.LOCAL_LLAMAFILE
-                    ? "Could not reach the local Llamafile server at " + provider.getEndpoint() + " — is it running?"
-                    : "Could not reach " + provider.getDisplayName() + ": " + e.getMessage(), e);
+                    ? "Could not reach the local Llamafile server at " + provider.getEndpoint() + " — is it running? (" + detail + ")"
+                    : "Could not reach " + provider.getDisplayName() + ": " + detail, e);
         }
 
         if (response.statusCode() != 200) {
