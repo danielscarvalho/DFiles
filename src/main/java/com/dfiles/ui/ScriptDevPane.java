@@ -2,6 +2,7 @@ package com.dfiles.ui;
 
 import com.dfiles.i18n.I18n;
 import com.dfiles.service.AiProvider;
+import com.dfiles.util.FileSizeFormatter;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -35,6 +36,7 @@ public class ScriptDevPane {
     private final VBox root = new VBox();
     private final Label scriptNameLabel = new Label();
     private final Label scriptHashLabel = new Label();
+    private final Label scriptDatesLabel = new Label();
     private final TextArea promptArea = new TextArea();
     private final TextArea scriptArea = new TextArea();
     private final TextArea terminalArea = new TextArea();
@@ -53,6 +55,8 @@ public class ScriptDevPane {
     private Consumer<AiProvider> onProviderChange;
 
     private String currentScriptName;
+    private long currentDateCreated;
+    private long currentLastUpdateDate;
 
     public ScriptDevPane() {
         promptArea.setWrapText(true);
@@ -88,6 +92,7 @@ public class ScriptDevPane {
 
         noScriptLabel.getStyleClass().add("status-dim");
         scriptHashLabel.getStyleClass().add("status-dim");
+        scriptDatesLabel.getStyleClass().add("status-dim");
 
         HBox promptHeader = new HBox(8, promptRowLabel, spacer(), providerCombo, runPromptButton);
         promptHeader.setAlignment(Pos.CENTER_LEFT);
@@ -95,7 +100,7 @@ public class ScriptDevPane {
         promptRow.setPadding(new Insets(6));
         VBox.setVgrow(promptArea, Priority.ALWAYS);
 
-        HBox scriptHeader = new HBox(8, scriptRowLabel, scriptNameLabel, scriptHashLabel, noScriptLabel, spacer(), saveButton);
+        HBox scriptHeader = new HBox(8, scriptRowLabel, scriptNameLabel, scriptHashLabel, scriptDatesLabel, noScriptLabel, spacer(), saveButton);
         scriptHeader.setAlignment(Pos.CENTER_LEFT);
         VBox scriptRow = new VBox(4, scriptHeader, scriptArea);
         scriptRow.setPadding(new Insets(6));
@@ -133,17 +138,21 @@ public class ScriptDevPane {
         saveButton.setText(I18n.t("scriptdev.save"));
         promptArea.setPromptText(I18n.t("scriptdev.promptPlaceholder"));
         noScriptLabel.setText(currentScriptName == null ? I18n.t("scripts.noneSelected") : "");
+        if (currentScriptName != null) updateDatesLabel(currentLastUpdateDate);
     }
 
     /** Populates all three rows from a script's saved state and enables the Save/Run Script
      * actions, which are disabled until a script has been loaded or created. */
-    public void loadScript(String name, String prompt, String content, String lastOutput, String hash) {
+    public void loadScript(String name, String prompt, String content, String lastOutput, String hash,
+                            long dateCreated, long lastUpdateDate) {
         this.currentScriptName = name;
+        this.currentDateCreated = dateCreated;
         scriptNameLabel.setText(name);
         promptArea.setText(prompt == null ? "" : prompt);
         scriptArea.setText(content == null ? "" : content);
         terminalArea.setText(lastOutput == null ? "" : lastOutput);
         setScriptHash(hash);
+        updateDatesLabel(lastUpdateDate);
         runScriptButton.setDisable(false);
         saveButton.setDisable(false);
         applyLabels();
@@ -152,11 +161,15 @@ public class ScriptDevPane {
     /** Resets the pane to its empty, no-script-loaded state (e.g. after the loaded script is deleted). */
     public void clearScript() {
         this.currentScriptName = null;
+        this.currentDateCreated = 0L;
+        this.currentLastUpdateDate = 0L;
         scriptNameLabel.setText("");
         promptArea.clear();
         scriptArea.clear();
         terminalArea.clear();
         setScriptHash(null);
+        scriptDatesLabel.setText("");
+        scriptDatesLabel.setTooltip(null);
         runScriptButton.setDisable(true);
         saveButton.setDisable(true);
         applyLabels();
@@ -173,6 +186,18 @@ public class ScriptDevPane {
         }
         scriptHashLabel.setText("#" + hash.substring(0, Math.min(10, hash.length())));
         scriptHashLabel.setTooltip(new Tooltip(hash));
+    }
+
+    /** Updates the "last updated" part of the dates label after a Save recomputes it, keeping
+     * the creation date (from the last {@link #loadScript}) shown in the tooltip unchanged. */
+    public void setLastUpdateDate(long lastUpdateDate) {
+        updateDatesLabel(lastUpdateDate);
+    }
+
+    private void updateDatesLabel(long lastUpdateDate) {
+        this.currentLastUpdateDate = lastUpdateDate;
+        scriptDatesLabel.setText(I18n.t("scriptdev.updated", FileSizeFormatter.formatDate(lastUpdateDate)));
+        scriptDatesLabel.setTooltip(new Tooltip(I18n.t("scriptdev.created", FileSizeFormatter.formatDate(currentDateCreated))));
     }
 
     /** Selects which AI backend the provider combo box shows, without firing the change callback

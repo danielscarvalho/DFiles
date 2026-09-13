@@ -6,10 +6,11 @@
 
 DFiles is a desktop file manager inspired by GNOME Files (Nautilus), built for people who want
 a clean, keyboard- and mouse-friendly way to browse their filesystem without giving up quick
-access to a terminal, Git, VS Code, and common archive/text operations. It keeps a small SQLite
-cache so recently visited folders paint instantly, watches the current folder in the background
-so external changes show up without a manual refresh, and stays out of your way with a resizable,
-collapsible layout and full support for English, Spanish, French, and Portuguese.
+access to a terminal, Git, VS Code, AI-assisted scripting, and common archive/text operations. It
+keeps a small SQLite cache so recently visited folders paint instantly, watches the current folder
+in the background so external changes show up without a manual refresh, and stays out of your way
+with a resizable, collapsible layout and full support for English, Spanish, French, Portuguese,
+and Italian.
 
 ![DFiles screenshot](docs/screenshot.png)
 
@@ -30,21 +31,44 @@ collapsible layout and full support for English, Spanish, French, and Portuguese
   dialog (plain text or regex) that always saves to a new versioned file, never overwriting the original
 - **Terminal & VS Code shortcuts** — open a terminal or VS Code at the current or selected folder
   in one click
+- **AI-assisted script generation** — describe what you want in plain English and have OpenAI or a
+  local [Llamafile](https://github.com/Mozilla-Ocho/llamafile) server write a bash script for you,
+  review and save it, then run it against the current folder with output streamed live. Every
+  saved script is content-hashed (SHA-256) and timestamped with when it was created and last
+  updated, and the generated code itself notes which provider and model produced it
 - **File properties** — Unix-style permissions, size, item counts, and modified dates, shown in the
   status bar for a single selection and in a full Properties dialog for any file or folder
-- **Internationalized UI** — English, Español, Français, and Português, auto-detected from your OS
-  locale on first launch and remembered after that
-- **Built-in Help** — a bundled documentation page, one click away from the toolbar
+- **Internationalized UI** — English, Español, Français, Português, and Italiano, auto-detected
+  from your OS locale on first launch and remembered after that
+- **Built-in Help** — a bundled documentation page for each supported language, cross-linked and
+  one click away from the toolbar
 - **Structured logging** — application activity and errors are logged to `~/.dfiles/dfiles.log`
   via Log4j2
 
 ## Requirements
 
-- **Java 21** or later ([Eclipse Temurin](https://adoptium.net/) or any OpenJDK 21+ distribution)
-- **Apache Maven 3.9+**
+To run the packaged jar, only a Java 21 runtime is needed. To build from source you'll also need
+Maven:
+
+- **Java 21** or later ([Eclipse Temurin](https://adoptium.net/) or any OpenJDK 21+ distribution) —
+  **required**
+- **Apache Maven 3.9+** — only needed to build from source
 - **JavaFX 21.0.3** — fetched automatically by Maven; no separate SDK install needed
-- Optional, for full functionality: `git`, a terminal emulator, `tar`/`unrar`/`7z` for non-zip
-  archive support, and the VS Code `code` CLI
+
+Everything else is optional and only needed for the matching feature:
+
+| Tool | Needed for |
+| --- | --- |
+| `git` | The Git toolbar menu (status, pull, push, commit, log, init) |
+| `OPENAI_API_KEY` env var | The OpenAI backend for AI-assisted scripts |
+| [Llamafile](https://github.com/Mozilla-Ocho/llamafile) | The local AI backend, served at `http://localhost:8080` |
+| VS Code (`code` CLI) | "Open in VS Code" |
+| `tar` / `unrar` / `7z` | Archive formats beyond zip |
+| A terminal emulator | "Open Terminal" |
+
+On Linux, if the packaged jar fails to start with `Unable to open DISPLAY`, your shell's `DISPLAY`
+environment variable doesn't point at your actual graphical session — see the in-app Help (or
+`src/main/resources/help/help_en.html`) for the fix.
 
 ## Build
 
@@ -69,8 +93,22 @@ Or run the packaged jar:
 java -jar target/dfiles.jar
 ```
 
-DFiles stores its settings, bookmarks, and file cache in `~/.dfiles/dfiles.sqlite`, and writes logs
-to `~/.dfiles/dfiles.log`.
+DFiles stores its settings, bookmarks, file cache, and saved scripts (prompt, content, content
+hash, run output, and created/updated timestamps) in `~/.dfiles/dfiles.sqlite`, and writes logs to
+`~/.dfiles/dfiles.log`. Scripts under test run from a scratch file in
+`<OS temp folder>/.dfiles/`, deleted again once the run finishes.
+
+## Documentation
+
+Generate API docs (Javadoc) for the codebase:
+
+```bash
+mvn javadoc:javadoc
+```
+
+Output lands in `target/reports/apidocs/index.html`. User-facing help is bundled in the app itself
+(`src/main/resources/help/help_*.html`, one file per supported language) and opens from the
+toolbar's Help button.
 
 ## Contributing
 

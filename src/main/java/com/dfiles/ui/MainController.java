@@ -1208,7 +1208,8 @@ public class MainController {
      * and switches to it. */
     private void openScript(String name) {
         var details = db.getScriptDetails(name);
-        scriptDevPane.loadScript(name, details.prompt(), details.content(), details.lastOutput(), details.hash());
+        scriptDevPane.loadScript(name, details.prompt(), details.content(), details.lastOutput(), details.hash(),
+                details.dateCreated(), details.lastUpdateDate());
         centerTabs.getSelectionModel().select(scriptDevTab);
     }
 
@@ -1324,12 +1325,13 @@ public class MainController {
     }
 
     /** Persists the prompt and script content shown in the Script Development tab, and refreshes
-     * the displayed content hash to match what was just saved. */
+     * the displayed content hash and last-updated date to match what was just saved. */
     private void saveCurrentScript() {
         String name = scriptDevPane.getCurrentScriptName();
         if (name == null) return;
-        String hash = db.saveScript(name, scriptDevPane.getPromptText(), scriptDevPane.getScriptContent());
-        scriptDevPane.setScriptHash(hash);
+        var result = db.saveScript(name, scriptDevPane.getPromptText(), scriptDevPane.getScriptContent());
+        scriptDevPane.setScriptHash(result.hash());
+        scriptDevPane.setLastUpdateDate(result.updatedAt());
         statusLabel.setText(I18n.t("status.scriptSaved", name));
         javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
         pause.setOnFinished(e -> updateStatusBar());

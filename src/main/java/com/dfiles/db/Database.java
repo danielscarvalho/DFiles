@@ -4,6 +4,7 @@ import com.dfiles.model.CustomFolder;
 import com.dfiles.model.FileItem;
 import com.dfiles.model.ScriptDetails;
 import com.dfiles.model.ScriptEntry;
+import com.dfiles.model.ScriptSaveResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -95,15 +96,18 @@ public class Database {
                     content TEXT NOT NULL DEFAULT '',
                     last_output TEXT NOT NULL DEFAULT '',
                     hash TEXT NOT NULL DEFAULT '',
+                    created_at INTEGER NOT NULL DEFAULT 0,
                     updated_at INTEGER NOT NULL
                 )
             """);
         }
-        // Migration path for databases created before prompt/last_output/hash existed.
+        // Migration path for databases created before prompt/last_output/hash/created_at existed.
         ensureColumn("scripts", "prompt", "TEXT NOT NULL DEFAULT ''");
         ensureColumn("scripts", "last_output", "TEXT NOT NULL DEFAULT ''");
         ensureColumn("scripts", "hash", "TEXT NOT NULL DEFAULT ''");
+        ensureColumn("scripts", "created_at", "INTEGER NOT NULL DEFAULT 0");
         backfillScriptHashes();
+        backfillScriptCreatedAt();
     }
 
     /** One-time backfill for rows left over from before the {@code hash} column existed, so
@@ -119,6 +123,15 @@ public class Database {
                 }
                 update.executeBatch();
             }
+        }
+    }
+
+    /** One-time backfill for rows left over from before the {@code created_at} column existed.
+     * The original creation time isn't recoverable, so this falls back to the row's
+     * {@code updated_at} — the closest known timestamp — rather than "now". */
+    private void backfillScriptCreatedAt() throws SQLException {
+        try (Statement update = connection.createStatement()) {
+            update.execute("UPDATE scripts SET created_at = updated_at WHERE created_at = 0");
         }
     }
 
@@ -325,33 +338,38 @@ public class Database {
         return result;
     }
 
-    /** Returns the prompt, content, last run output and content hash saved for {@code name}, or
-     * empty strings if the script doesn't exist (which callers can treat the same as "nothing
-     * saved yet"). */
+    /** Returns the prompt, content, last run output, content hash, and created/updated
+     * timestamps saved for {@code name}, or empty/zero values if the script doesn't exist (which
+     * callers can treat the same as "nothing saved yet"). */
     public synchronized ScriptDetails getScriptDetails(String name) {
         try (PreparedStatement ps = connection.prepareStatement(
-                "SELECT prompt, content, last_output, hash FROM scripts WHERE name = ?")) {
+                "SELECT prompt, content, last_output, hash, created_at, updated_at FROM scripts WHERE name = ?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new ScriptDetails(rs.getString("prompt"), rs.getString("content"),
-                            rs.getString("last_output"), rs.getString("hash"));
+                            rs.getString("last_output"), rs.getString("hash"),
+                            rs.getLong("created_at"), rs.getLong("updated_at"));
                 }
             }
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
         }
-        return new ScriptDetails("", "", "", "");
+        return new ScriptDetails("", "", "", "", 0L, 0L);
     }
 
-    /** Creates the script if the name is new, or returns false if it already exists. */
+    /** Creates the script if the name is new, or returns false if it already exists. Both
+     * {@code created_at} and {@code updated_at} are set to the same timestamp, since the script
+     * has not been edited yet. */
     public synchronized boolean createScript(String name, String content) {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT OR IGNORE INTO scripts(name, content, hash, updated_at) VALUES (?, ?, ?, ?)")) {
+                "INSERT OR IGNORE INTO scripts(name, content, hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")) {
+            long now = System.currentTimeMillis();
             ps.setString(1, name);
             ps.setString(2, content);
             ps.setString(3, sha256Hex(content));
-            ps.setLong(4, System.currentTimeMillis());
+            ps.setLong(4, now);
+            ps.setLong(5, now);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
@@ -360,22 +378,24 @@ public class Database {
     }
 
     /** Saves the prompt and script content together — used by the Script Development tab's
-     * Save button, which commits both fields in one step — and recomputes the content hash.
-     * Returns the new hash so the caller can refresh what it displays without a second query. */
-    public synchronized String saveScript(String name, String prompt, String content) {
+     * Save button, which commits both fields in one step — recomputes the content hash, and
+     * bumps {@code updated_at} ({@code created_at} is left untouched). Returns the new hash and
+     * timestamp so the caller can refresh what it displays without a second query. */
+    public synchronized ScriptSaveResult saveScript(String name, String prompt, String content) {
         String hash = sha256Hex(content);
+        long now = System.currentTimeMillis();
         try (PreparedStatement ps = connection.prepareStatement(
                 "UPDATE scripts SET prompt = ?, content = ?, hash = ?, updated_at = ? WHERE name = ?")) {
             ps.setString(1, prompt);
             ps.setString(2, content);
             ps.setString(3, hash);
-            ps.setLong(4, System.currentTimeMillis());
+            ps.setLong(4, now);
             ps.setString(5, name);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
         }
-        return hash;
+        return new ScriptSaveResult(hash, now);
     }
 
     /** Records the output from the most recent test run of {@code name}, independent of saving
