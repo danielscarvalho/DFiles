@@ -81,6 +81,11 @@
         font-size: 14px;
         margin: 12px 0;
     }
+    .lang-switch { margin-top: 12px; font-size: 13px; }
+    .lang-switch a, .lang-switch .lang-current { margin-right: 14px; }
+    .lang-switch a { color: white; text-decoration: underline; opacity: 0.85; }
+    .lang-switch a:hover { opacity: 1; }
+    .lang-switch .lang-current { font-weight: 600; opacity: 1; border-bottom: 2px solid white; padding-bottom: 2px; }
     footer { text-align: center; color: var(--dim); font-size: 12px; padding: 24px; }
     @media (max-width: 800px) {
         .layout { flex-direction: column; }
@@ -93,6 +98,12 @@
 <header>
     <h1>DFiles</h1>
     <p>Un gestionnaire de fichiers JavaFX — référence rapide et aide</p>
+    <div class="lang-switch">
+        <a href="help_en.html">English</a>
+        <a href="help_es.html">Español</a>
+        <span class="lang-current">Français</span>
+        <a href="help_pt.html">Português</a>
+    </div>
 </header>
 
 <div class="layout">
@@ -100,6 +111,8 @@
     <h2>Sommaire</h2>
     <ul>
         <li><a href="#getting-started">Premiers pas</a></li>
+        <li><a href="#running">Lancer DFiles</a></li>
+        <li><a href="#requirements">Prérequis et outils optionnels</a></li>
         <li><a href="#navigation">Navigation</a></li>
         <li><a href="#places">Emplacements et favoris</a></li>
         <li><a href="#table">Tableau des fichiers</a></li>
@@ -131,6 +144,61 @@
         modifiés ailleurs apparaissent automatiquement — pas besoin d'actualiser manuellement (même s'il
         existe aussi un bouton d'actualisation).
     </div>
+</section>
+
+<section id="running">
+    <h2>Lancer DFiles</h2>
+    <p>
+        DFiles est distribué sous la forme d'un unique fichier JAR exécutable, <code>dfiles.jar</code>
+        (compilé avec <code>mvn package</code>). Un environnement d'exécution Java 21 (JRE ou JDK) doit être
+        installé sur votre machine.
+    </p>
+    <h3>Windows</h3>
+    <p>Ouvrez une invite de commandes ou PowerShell dans le dossier contenant <code>dfiles.jar</code> et
+        exécutez :</p>
+    <p><code>java -jar dfiles.jar</code></p>
+    <p>Si Java est installé et associé aux fichiers <code>.jar</code>, un double-clic sur
+        <code>dfiles.jar</code> dans l'Explorateur de fichiers fonctionne également.</p>
+    <h3>Linux</h3>
+    <p>Depuis un terminal, dans le dossier contenant le jar :</p>
+    <p><code>java -jar dfiles.jar</code></p>
+    <div class="tip">
+        DFiles est une application graphique et a besoin d'une session de bureau X11 ou Wayland
+        fonctionnelle. S'il ne démarre pas et affiche l'erreur <code>Unable to open DISPLAY</code>, la
+        variable d'environnement <code>DISPLAY</code> de votre shell ne pointe pas vers votre véritable
+        session graphique — un cas fréquent sur les configurations de bureau à distance ou multi-sessions, où
+        un terminal fraîchement ouvert utilise par défaut <code>:0</code> alors que votre session de bureau
+        réelle est <code>:1</code> ou supérieure. Vérifiez quel affichage votre bureau utilise réellement,
+        puis exécutez <code>export DISPLAY=:1</code> (en ajustant le numéro) avant de lancer DFiles, ou
+        ajoutez cette ligne à votre profil shell (<code>~/.bashrc</code> ou <code>~/.zshrc</code>) pour une
+        correction permanente.
+    </div>
+    <h3>macOS</h3>
+    <p>Depuis Terminal, dans le dossier contenant le jar :</p>
+    <p><code>java -jar dfiles.jar</code></p>
+    <p>Si vous n'avez pas encore Java 21, le moyen le plus rapide de l'installer est Homebrew :
+        <code>brew install openjdk@21</code>.</p>
+</section>
+
+<section id="requirements">
+    <h2>Prérequis et outils optionnels</h2>
+    <p>Seul un environnement Java 21 est requis pour exécuter DFiles. Tout le reste ci-dessous est optionnel,
+        et n'est nécessaire que si vous utilisez la fonctionnalité correspondante :</p>
+    <table>
+        <tr><th>Outil</th><th>Nécessaire pour</th></tr>
+        <tr><td>Java 21 (JRE/JDK)</td><td>Exécuter DFiles — <strong>obligatoire</strong></td></tr>
+        <tr><td>Git</td><td>Le menu <strong>Git</strong> de la barre d'outils (Statut, Pull, Push, Valider,
+            Historique, Initialiser) — DFiles exécute la commande <code>git</code> en externe, elle doit donc
+            être installée et accessible via votre <code>PATH</code></td></tr>
+        <tr><td><code>OPENAI_API_KEY</code></td><td>Le backend <strong>OpenAI</strong> pour les scripts
+            assistés par IA — définissez cette variable d'environnement avant de lancer DFiles</td></tr>
+        <tr><td><a href="https://github.com/Mozilla-Ocho/llamafile">Llamafile</a></td><td>Le backend
+            <strong>Local (Llamafile)</strong> — exécutez un serveur Llamafile sur votre machine à l'adresse
+            <code>http://localhost:8080</code> avant de sélectionner ce fournisseur</td></tr>
+        <tr><td>VS Code (commande <code>code</code>)</td><td><strong>Ouvrir dans VS Code</strong> — installez
+            VS Code et activez son lanceur en ligne de commande <code>code</code></td></tr>
+        <tr><td>Docker</td><td>Prévu pour une future version — aucune fonctionnalité actuelle ne l'utilise</td></tr>
+    </table>
 </section>
 
 <section id="navigation">

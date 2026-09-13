@@ -297,24 +297,32 @@ public class MainController {
         });
     }
 
-    /** Unpacks the bundled help page next to the database (so it survives as a real file the
-     * OS browser can open) and launches it with the system default application, same as any
-     * other file — kept off the FX thread for the same reason DesktopOpener always is.
+    /** Unpacks the bundled help pages next to the database (so they survive as real files the
+     * OS browser can open) and launches the one matching the current UI language with the
+     * system default application — kept off the FX thread for the same reason DesktopOpener
+     * always is.
      *
-     * <p>Picks the help file matching the current UI language (e.g. {@code help_es.html}),
-     * falling back to {@code help_en.html} if a translation for that language isn't bundled. */
+     * <p>Every supported language's help file is extracted alongside the one that gets opened
+     * (not just that one) so the in-page language-switcher links between them resolve to real
+     * files instead of 404ing. Falls back to {@code help_en.html} if a translation for the
+     * current language isn't bundled. */
     private void openHelp() {
         Thread worker = new Thread(() -> {
             try {
                 Path helpDir = Paths.get(System.getProperty("user.home"), ".dfiles");
                 Files.createDirectories(helpDir);
-                String lang = I18n.getLocale().getLanguage();
-                String resourceName = "help_" + lang + ".html";
+                for (java.util.Locale locale : I18n.SUPPORTED) {
+                    String name = "help_" + locale.getLanguage() + ".html";
+                    if (getClass().getResource("/help/" + name) != null) {
+                        extractResource("/help/" + name, helpDir.resolve(name));
+                    }
+                }
+                extractResource("/help/screenshot.png", helpDir.resolve("screenshot.png"));
+
+                String resourceName = "help_" + I18n.getLocale().getLanguage() + ".html";
                 if (getClass().getResource("/help/" + resourceName) == null) {
                     resourceName = "help_en.html";
                 }
-                extractResource("/help/" + resourceName, helpDir.resolve(resourceName));
-                extractResource("/help/screenshot.png", helpDir.resolve("screenshot.png"));
                 DesktopOpener.open(helpDir.resolve(resourceName));
             } catch (IOException e) {
                 LOGGER.error("Could not open help page", e);
