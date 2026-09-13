@@ -3,12 +3,14 @@ package com.dfiles.ui;
 import com.dfiles.db.Database;
 import com.dfiles.i18n.I18n;
 import com.dfiles.model.FileItem;
+import com.dfiles.service.AiScriptService;
 import com.dfiles.service.ArchiveService;
 import com.dfiles.service.DesktopOpener;
 import com.dfiles.service.DirectoryScanner;
 import com.dfiles.service.FileTypeUtil;
 import com.dfiles.service.FolderWatcherService;
 import com.dfiles.service.GitService;
+import com.dfiles.service.ScriptRunner;
 import com.dfiles.service.TerminalLauncher;
 import com.dfiles.service.TextPreviewService;
 import com.dfiles.service.VSCodeLauncher;
@@ -78,6 +80,10 @@ public class MainController {
 
     private final LeftPane leftPane = new LeftPane();
     private final FileTablePane filesPane = new FileTablePane();
+    private final ScriptDevPane scriptDevPane = new ScriptDevPane();
+    private javafx.scene.control.TabPane centerTabs;
+    private javafx.scene.control.Tab filesTab;
+    private javafx.scene.control.Tab scriptDevTab;
 
     private final BorderPane root = new BorderPane();
     private final Label statusLabel = new Label();
@@ -116,8 +122,15 @@ public class MainController {
     public BorderPane buildUI() {
         root.setTop(buildTopArea());
 
+        // Tab 1 is the existing file browser; Tab 2 is the AI-assisted script workspace.
+        centerTabs = new javafx.scene.control.TabPane();
+        centerTabs.setTabClosingPolicy(javafx.scene.control.TabPane.TabClosingPolicy.UNAVAILABLE);
+        filesTab = new javafx.scene.control.Tab(I18n.t("tabs.files"), buildCenterArea());
+        scriptDevTab = new javafx.scene.control.Tab(I18n.t("tabs.scriptDev"), scriptDevPane.getNode());
+        centerTabs.getTabs().addAll(filesTab, scriptDevTab);
+
         // Draggable divider between the sidebar and the file table, so both can be resized.
-        mainSplit = new javafx.scene.control.SplitPane(leftPane.getNode(), buildCenterArea());
+        mainSplit = new javafx.scene.control.SplitPane(leftPane.getNode(), centerTabs);
         mainSplit.setDividerPositions(0.2);
         javafx.scene.control.SplitPane.setResizableWithParent(leftPane.getNode(), false);
         root.setCenter(mainSplit);
@@ -131,6 +144,16 @@ public class MainController {
             leftPane.setBookmarks(db.listCustomFolders());
         });
         leftPane.setBookmarks(db.listCustomFolders());
+
+        leftPane.setOnSelectScript(this::openScript);
+        leftPane.setOnAddScript(this::addScriptDialog);
+        leftPane.setOnRenameScript(this::renameScriptDialog);
+        leftPane.setOnDeleteScript(this::deleteScriptDialog);
+        leftPane.setScripts(db.listScripts());
+
+        scriptDevPane.setOnRunPrompt(this::runAiPrompt);
+        scriptDevPane.setOnRunScript(this::runCurrentScript);
+        scriptDevPane.setOnSave(this::saveCurrentScript);
 
         filesPane.setOnOpen(this::openItem);
         filesPane.setOnSelectionChanged(sel -> updateStatusBar());
@@ -1160,6 +1183,125 @@ public class MainController {
         }
     }
 
+    // ---------------- scripts ----------------
+
+    private void openScript(String name) {
+        String content = db.getScriptContent(name);
+        scriptDevPane.loadScript(name, content);
+        centerTabs.getSelectionModel().select(scriptDevTab);
+    }
+
+    private void addScriptDialog() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(I18n.t("dialog.newScript.title"));
+        dialog.setHeaderText(I18n.t("dialog.newScript.header"));
+        dialog.setContentText(I18n.t("dialog.newScript.prompt"));
+        dialog.showAndWait().ifPresent(name -> {
+            String trimmed = name.trim();
+            if (trimmed.isEmpty()) return;
+            boolean created = db.createScript(trimmed, "#!/usr/bin/env bash\n\n");
+            if (!created) {
+                showError(I18n.t("dialog.error.title"), I18n.t("error.scriptExists", trimmed));
+                return;
+            }
+            leftPane.setScripts(db.listScripts());
+            openScript(trimmed);
+        });
+    }
+
+    private void renameScriptDialog(String oldName) {
+        TextInputDialog dialog = new TextInputDialog(oldName);
+        dialog.setTitle(I18n.t("dialog.renameScript.title"));
+        dialog.setHeaderText(I18n.t("dialog.renameScript.header", oldName));
+        dialog.setContentText(I18n.t("dialog.renameScript.prompt"));
+        dialog.showAndWait().ifPresent(newName -> {
+            String trimmed = newName.trim();
+            if (trimmed.isEmpty() || trimmed.equals(oldName)) return;
+            boolean renamed = db.renameScript(oldName, trimmed);
+            if (!renamed) {
+                showError(I18n.t("dialog.error.title"), I18n.t("error.scriptExists", trimmed));
+                return;
+            }
+            leftPane.setScripts(db.listScripts());
+            if (oldName.equals(scriptDevPane.getCurrentScriptName())) {
+                scriptDevPane.loadScript(trimmed, scriptDevPane.getScriptContent());
+            }
+        });
+    }
+
+    private void deleteScriptDialog(String name) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle(I18n.t("dialog.deleteScript.title"));
+        confirm.setHeaderText(I18n.t("dialog.deleteScript.header").formatted(name));
+        confirm.setContentText(I18n.t("dialog.deleteScript.content"));
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                db.deleteScript(name);
+                leftPane.setScripts(db.listScripts());
+                if (name.equals(scriptDevPane.getCurrentScriptName())) {
+                    scriptDevPane.clearScript();
+                }
+            }
+        });
+    }
+
+    private void runAiPrompt(String prompt) {
+        scriptDevPane.setPromptBusy(true);
+        Thread worker = new Thread(() -> {
+            try {
+                String script = AiScriptService.generateScript(prompt);
+                Platform.runLater(() -> {
+                    scriptDevPane.setScriptContent(script);
+                    scriptDevPane.setPromptBusy(false);
+                });
+            } catch (Exception e) {
+                LOGGER.error("AI script generation failed", e);
+                Platform.runLater(() -> {
+                    scriptDevPane.setPromptBusy(false);
+                    showError(I18n.t("dialog.error.title"), I18n.t("error.aiGenerate", e.getMessage()));
+                });
+            }
+        }, "dfiles-ai-generate");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void runCurrentScript() {
+        String content = scriptDevPane.getScriptContent();
+        if (content == null || content.isBlank()) return;
+        scriptDevPane.clearTerminal();
+        scriptDevPane.setScriptRunning(true);
+        Path workDir = currentDirectory != null ? currentDirectory : Paths.get(System.getProperty("user.home"));
+        ScriptRunner.run(content, workDir, new ScriptRunner.Listener() {
+            @Override
+            public void onLine(String line) {
+                scriptDevPane.appendTerminalLine(line);
+            }
+
+            @Override
+            public void onFinished(int exitCode) {
+                scriptDevPane.appendTerminalLine(I18n.t("status.scriptFinished", exitCode));
+                scriptDevPane.setScriptRunning(false);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                scriptDevPane.appendTerminalLine("Error: " + e.getMessage());
+                scriptDevPane.setScriptRunning(false);
+            }
+        });
+    }
+
+    private void saveCurrentScript() {
+        String name = scriptDevPane.getCurrentScriptName();
+        if (name == null) return;
+        db.saveScriptContent(name, scriptDevPane.getScriptContent());
+        statusLabel.setText(I18n.t("status.scriptSaved", name));
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+        pause.setOnFinished(e -> updateStatusBar());
+        pause.play();
+    }
+
     // ---------------- git ----------------
 
     private void updateGitControls() {
@@ -1196,6 +1338,9 @@ public class MainController {
         stage.setTitle(I18n.t("app.title"));
         leftPane.applyLabels();
         filesPane.applyLabels();
+        scriptDevPane.applyLabels();
+        filesTab.setText(I18n.t("tabs.files"));
+        scriptDevTab.setText(I18n.t("tabs.scriptDev"));
         toggleSidebarBtn.setTooltip(new Tooltip(I18n.t("toolbar.toggleSidebar")));
         backBtn.setTooltip(new Tooltip(I18n.t("toolbar.back")));
         forwardBtn.setTooltip(new Tooltip(I18n.t("toolbar.forward")));

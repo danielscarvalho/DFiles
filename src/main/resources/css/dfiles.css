@@ -13,18 +13,18 @@
     -fx-text-fill: #8a8880;
 }
 
-.places-list, .bookmarks-list {
+.places-list, .bookmarks-list, .scripts-list {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
 
-.places-list .list-cell, .bookmarks-list .list-cell {
+.places-list .list-cell, .bookmarks-list .list-cell, .scripts-list .list-cell {
     -fx-background-color: transparent;
     -fx-padding: 5 8 5 10;
     -fx-background-radius: 6;
 }
 
-.places-list .list-cell:filled:selected, .bookmarks-list .list-cell:filled:selected {
+.places-list .list-cell:filled:selected, .bookmarks-list .list-cell:filled:selected, .scripts-list .list-cell:filled:selected {
     -fx-background-color: #3584e4;
     -fx-text-fill: white;
 }
@@ -45,11 +45,12 @@
 }
 
 .places-list .list-cell:filled:selected .label,
-.bookmarks-list .list-cell:filled:selected .label {
+.bookmarks-list .list-cell:filled:selected .label,
+.scripts-list .list-cell:filled:selected .label {
     -fx-text-fill: white;
 }
 
-.places-list .list-cell:filled:hover, .bookmarks-list .list-cell:filled:hover {
+.places-list .list-cell:filled:hover, .bookmarks-list .list-cell:filled:hover, .scripts-list .list-cell:filled:hover {
     -fx-background-color: #e2e0dc;
 }
 
@@ -101,5 +102,10 @@
     -fx-text-fill: #33ff33;
     -fx-highlight-fill: #206020;
     -fx-highlight-text-fill: #d6ffd6;
+    -fx-font-family: monospace;
+}
+
+.script-editor {
+    -fx-control-inner-background: #fbfbfa;
     -fx-font-family: monospace;
 }

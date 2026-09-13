@@ -2,6 +2,7 @@ package com.dfiles.db;
 
 import com.dfiles.model.CustomFolder;
 import com.dfiles.model.FileItem;
+import com.dfiles.model.ScriptEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -73,6 +74,14 @@ public class Database {
                     sort_column TEXT,
                     sort_ascending INTEGER DEFAULT 1,
                     show_hidden INTEGER DEFAULT 0
+                )
+            """);
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS scripts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    content TEXT NOT NULL DEFAULT '',
+                    updated_at INTEGER NOT NULL
                 )
             """);
         }
@@ -226,6 +235,81 @@ public class Database {
             ps.setString(2, sortColumn);
             ps.setInt(3, ascending ? 1 : 0);
             ps.setInt(4, showHidden ? 1 : 0);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+        }
+    }
+
+    // ---------------- scripts ----------------
+
+    public synchronized List<ScriptEntry> listScripts() {
+        List<ScriptEntry> result = new ArrayList<>();
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("SELECT id, name FROM scripts ORDER BY name COLLATE NOCASE")) {
+            while (rs.next()) {
+                result.add(new ScriptEntry(rs.getInt("id"), rs.getString("name")));
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+        }
+        return result;
+    }
+
+    public synchronized String getScriptContent(String name) {
+        try (PreparedStatement ps = connection.prepareStatement("SELECT content FROM scripts WHERE name = ?")) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("content");
+            }
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+        }
+        return "";
+    }
+
+    /** Creates the script if the name is new, or returns false if it already exists. */
+    public synchronized boolean createScript(String name, String content) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT OR IGNORE INTO scripts(name, content, updated_at) VALUES (?, ?, ?)")) {
+            ps.setString(1, name);
+            ps.setString(2, content);
+            ps.setLong(3, System.currentTimeMillis());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    public synchronized void saveScriptContent(String name, String content) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE scripts SET content = ?, updated_at = ? WHERE name = ?")) {
+            ps.setString(1, content);
+            ps.setLong(2, System.currentTimeMillis());
+            ps.setString(3, name);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+        }
+    }
+
+    /** Returns false if newName is already taken by another script. */
+    public synchronized boolean renameScript(String oldName, String newName) {
+        try (PreparedStatement ps = connection.prepareStatement("UPDATE scripts SET name = ? WHERE name = ?")) {
+            ps.setString(1, newName);
+            ps.setString(2, oldName);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            LOGGER.error("Database operation failed", e);
+            return false;
+        }
+    }
+
+    public synchronized void deleteScript(String name) {
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM scripts WHERE name = ?")) {
+            ps.setString(1, name);
             ps.executeUpdate();
         } catch (SQLException e) {
             LOGGER.error("Database operation failed", e);
