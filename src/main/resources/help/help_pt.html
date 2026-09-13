@@ -157,10 +157,20 @@
     <p>Abra o Prompt de Comando ou o PowerShell na pasta que contém o <code>dfiles.jar</code> e execute:</p>
     <p><code>java -jar dfiles.jar</code></p>
     <p>Se o Java estiver instalado e associado a arquivos <code>.jar</code>, dar duplo clique em
-        <code>dfiles.jar</code> no Explorador de Arquivos também funciona.</p>
+        <code>dfiles.jar</code> no Explorador de Arquivos também funciona. Se você ainda não tem o Java,
+        instale-o com <code>winget install Microsoft.OpenJDK.21</code>, ou baixe um instalador em
+        <a href="https://adoptium.net">adoptium.net</a>.</p>
     <h3>Linux</h3>
     <p>A partir de um terminal, na pasta que contém o jar:</p>
     <p><code>java -jar dfiles.jar</code></p>
+    <p>Se você ainda não tem o Java, instale-o com o gerenciador de pacotes da sua distribuição, por
+        exemplo:</p>
+    <ul>
+        <li>Debian / Ubuntu: <code>sudo apt install default-jdk</code> (ou
+            <code>sudo apt install openjdk-21-jdk</code> para uma versão específica)</li>
+        <li>Fedora: <code>sudo dnf install java-21-openjdk</code></li>
+        <li>Arch Linux: <code>sudo pacman -S jdk21-openjdk</code></li>
+    </ul>
     <div class="tip">
         O DFiles é uma aplicação gráfica e precisa de uma sessão de desktop X11 ou Wayland em funcionamento.
         Se ele falhar ao iniciar com o erro <code>Unable to open DISPLAY</code>, a variável de ambiente
