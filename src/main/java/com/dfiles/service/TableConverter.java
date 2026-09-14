@@ -15,11 +15,11 @@ import java.util.regex.Pattern;
  * <p>The actual parsing and writing is delegated to one small class per format
  * ({@link DelimitedTableParser}, {@link JsonTableParser}, {@link XmlTableParser},
  * {@link MarkdownTableParser}, {@link YamlTableParser}, {@link XlsxTableParser},
- * {@link SqlTableWriter}, {@link CsvTableWriter}, {@link JsonTableWriter}, {@link XmlTableWriter},
- * {@link HtmlTableWriter}, {@link MarkdownTableWriter}, {@link YamlTableWriter},
- * {@link XlsxTableWriter}); this class only resolves {@code AUTO} and dispatches to the right
- * one, which is what makes every input format able to produce every output format without a
- * dedicated code path per combination.
+ * {@link SqlTableWriter}, {@link CsvTableWriter}, {@link TsvTableWriter}, {@link JsonTableWriter},
+ * {@link XmlTableWriter}, {@link HtmlTableWriter}, {@link MarkdownTableWriter},
+ * {@link YamlTableWriter}, {@link XlsxTableWriter}); this class only resolves {@code AUTO} and
+ * dispatches to the right one, which is what makes every input format able to produce every
+ * output format without a dedicated code path per combination.
  *
  * <p>{@link TableOutputFormat#XLSX} is the one output that isn't text — use {@link #writeXlsx}
  * for it instead of {@link #write}.
@@ -81,6 +81,7 @@ public final class TableConverter {
         return switch (format) {
             case SQL -> SqlTableWriter.write(table, tableName, includeCreateTable, dialect);
             case CSV -> CsvTableWriter.write(table);
+            case TSV -> TsvTableWriter.write(table);
             case JSON -> JsonTableWriter.write(table);
             case XML -> XmlTableWriter.write(table);
             case HTML_TABLE -> HtmlTableWriter.write(table);

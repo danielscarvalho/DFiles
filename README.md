@@ -37,9 +37,11 @@ and Italian.
   saved script is content-hashed (SHA-256) and timestamped with when it was created and last
   updated, and the generated code itself notes which provider and model produced it
 - **Data conversion** — turn CSV, TSV, JSON, XML, a Markdown table, YAML, or an Excel (.xlsx) file
-  into any of those same formats, an HTML table, or SQL, from pasted text, a local file, or a URL,
-  with a choice of source encoding (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252). SQL output
-  targets SQLite, MySQL, PostgreSQL, Oracle, or Microsoft SQL Server — each with its own idiomatic
+  into any of those same formats, an HTML table, or SQL, from a single **Local file or URL** field
+  (leave it blank to paste data directly into the text box below it instead — filling it in turns
+  that box into a read-only head-sample preview of the file/URL, fetched automatically), with a
+  choice of source encoding (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252). SQL output targets
+  SQLite, MySQL, PostgreSQL, Oracle, or Microsoft SQL Server — each with its own idiomatic
   drop/create statements, transaction syntax, column types, and identifier limits, since none of
   them agree on any of that (Oracle in particular has no multi-row `INSERT ... VALUES`, so it gets
   rewritten as `INSERT ALL`). The source is only ever read — results always go to a new file you

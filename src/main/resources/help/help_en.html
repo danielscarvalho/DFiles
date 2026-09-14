@@ -371,14 +371,19 @@
         <li><strong>Excel (.xlsx)</strong> — the first sheet, first row as header</li>
     </ul>
     <p>
-        Three tabs choose where the data comes from — <strong>Paste Text</strong>, <strong>Local
-        File</strong>, or <strong>URL</strong> — alongside a character-encoding choice (UTF-8, UTF-16,
-        Latin-1, US-ASCII, Windows-1252) for the text-based formats. <strong>Input format</strong> can be
-        left on <strong>Auto-detect</strong>, which sniffs the content, or set explicitly.
+        A single <strong>Local file or URL</strong> field takes either a local path (or one chosen via
+        <strong>Browse…</strong>) or a web address; leave it blank and the big text box below it is a
+        normal paste area instead. Filling in the field turns that same box read-only and loads a
+        head-sample preview of the file or URL's content into it — Convert itself always re-reads the
+        full source fresh rather than reusing the sample. A character-encoding choice (UTF-8, UTF-16,
+        Latin-1, US-ASCII, Windows-1252) applies to the text-based formats, and <strong>Input
+        format</strong> can be left on <strong>Auto-detect</strong>, which sniffs the content, or set
+        explicitly.
     </p>
     <p>
-        <strong>Output format</strong> is any of SQL, CSV, JSON, XML, an HTML table, a Markdown table,
-        YAML, or Excel. For SQL, a <strong>SQL dialect</strong> selector chooses the target database —
+        <strong>Output format</strong> is any of SQL, CSV, TSV, JSON, XML, an HTML table, a Markdown
+        table, YAML, or Excel. For SQL, a <strong>SQL dialect</strong> selector chooses the target
+        database —
         <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>, <strong>Oracle</strong>,
         or <strong>Microsoft SQL Server</strong> — since they disagree on quite a lot: column type names,
         how to start a transaction, and how to safely drop-and-recreate a table (none of them actually

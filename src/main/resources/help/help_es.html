@@ -382,15 +382,18 @@
         <li><strong>Excel (.xlsx)</strong> — la primera hoja, con la primera fila como encabezado</li>
     </ul>
     <p>
-        Tres pestañas eligen de dónde vienen los datos — <strong>Pegar texto</strong>, <strong>Archivo
-        local</strong> o <strong>URL</strong> — junto con una elección de codificación de caracteres
-        (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) para los formatos basados en texto. El
-        <strong>formato de entrada</strong> puede dejarse en <strong>Auto-detect</strong>, que analiza el
-        contenido, o fijarse explícitamente.
+        Un único campo <strong>Archivo local o URL</strong> acepta una ruta local (o una elegida con
+        <strong>Examinar…</strong>) o una dirección web; déjalo vacío y el cuadro de texto grande de
+        abajo funciona como un área para pegar texto normal. Al rellenar el campo, ese mismo cuadro se
+        vuelve de solo lectura y carga una vista previa de muestra del contenido del archivo o la URL —
+        Convertir siempre vuelve a leer la fuente completa desde cero en lugar de reutilizar la muestra.
+        Una elección de codificación de caracteres (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) se
+        aplica a los formatos basados en texto, y el <strong>formato de entrada</strong> puede dejarse en
+        <strong>Auto-detect</strong>, que analiza el contenido, o fijarse explícitamente.
     </p>
     <p>
-        El <strong>formato de salida</strong> puede ser SQL, CSV, JSON, XML, una tabla HTML, una tabla
-        Markdown, YAML o Excel. Para SQL, un selector de <strong>dialecto SQL</strong> elige la base de
+        El <strong>formato de salida</strong> puede ser SQL, CSV, TSV, JSON, XML, una tabla HTML, una
+        tabla Markdown, YAML o Excel. Para SQL, un selector de <strong>dialecto SQL</strong> elige la base de
         datos destino — <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>,
         <strong>Oracle</strong> o <strong>Microsoft SQL Server</strong> — ya que difieren bastante entre
         sí: nombres de tipos de columna, cómo iniciar una transacción, y cómo eliminar y recrear una tabla

@@ -5,6 +5,7 @@ package com.dfiles.service;
 public enum TableOutputFormat {
     SQL("SQL"),
     CSV("CSV"),
+    TSV("TSV"),
     JSON("JSON"),
     XML("XML"),
     HTML_TABLE("HTML Table"),

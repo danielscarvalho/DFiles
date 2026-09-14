@@ -10,12 +10,11 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
@@ -29,6 +28,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,18 +41,27 @@ import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
- * The "Convert" dialog: turns pasted text, a local file, or a downloaded URL — in CSV, TSV, JSON,
- * XML, Markdown-table, YAML, or Excel (.xlsx) format — into SQL (for a choice of SQLite, MySQL,
- * PostgreSQL, Oracle, or Microsoft SQL Server), CSV, JSON, XML, an HTML table, a Markdown table,
- * YAML, or Excel, inspired by <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
- * Every input format can produce every output format, since both sides go through the common
- * {@link TableData} intermediate form in {@link TableConverter}.
+ * The "Convert" dialog: turns pasted text, a local file, or a URL — in CSV, TSV, JSON, XML,
+ * Markdown-table, YAML, or Excel (.xlsx) format — into SQL (for a choice of SQLite, MySQL,
+ * PostgreSQL, Oracle, or Microsoft SQL Server), CSV, TSV, JSON, XML, an HTML table, a Markdown
+ * table, YAML, or Excel, inspired by
+ * <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>. Every input format can
+ * produce every output format, since both sides go through the common {@link TableData}
+ * intermediate form in {@link TableConverter}.
+ *
+ * <p>A single source field takes either a local file path or a URL; leaving it blank means the
+ * big text area below it is the input to convert (pasted directly). Filling it in instead turns
+ * that same text area into a read-only head-sample preview of the file/URL's content, fetched
+ * automatically when the field loses focus, Enter is pressed in it, or a file is chosen via
+ * Browse — Convert itself always re-reads the full source fresh rather than reusing the sample.
  *
  * <p>The source (pasted text, chosen file, or downloaded bytes) is only ever read, never
  * modified: results are written to a brand-new file chosen via {@link FileChooser}, and choosing
@@ -66,6 +75,8 @@ public final class ConvertDialog {
             .build();
     private static final Pattern NON_IDENTIFIER = Pattern.compile("[^A-Za-z0-9_]+");
     private static final Pattern URL_LAST_SEGMENT = Pattern.compile("/([^/?#]+)[^/]*$");
+    private static final Pattern URL_PREFIX = Pattern.compile("^https?://", Pattern.CASE_INSENSITIVE);
+    private static final int PREVIEW_MAX_LINES = 60;
 
     private ConvertDialog() {}
 
@@ -86,52 +97,84 @@ public final class ConvertDialog {
         show(owner, null);
     }
 
-    /** Opens the dialog with the Local File tab already selected and {@code prefillFile} loaded
-     * into it, for the file table's "Convert…" context menu item. */
+    /** Opens the dialog with {@code prefillFile}'s path already in the source field (and its
+     * preview already loading), for the file table's "Convert…" context menu item. */
     public static void show(Stage owner, Path prefillFile) {
+        TextField sourceField = new TextField();
+        sourceField.setPromptText(I18n.t("dialog.convert.sourcePlaceholder"));
+        Button browseButton = new Button(I18n.t("dialog.convert.browse"));
+        HBox sourceRow = new HBox(8, sourceField, browseButton);
+        HBox.setHgrow(sourceField, Priority.ALWAYS);
+
         TextArea pasteArea = new TextArea();
         pasteArea.setWrapText(false);
         pasteArea.setPromptText(I18n.t("dialog.convert.pastePlaceholder"));
-        Tab pasteTab = new Tab(I18n.t("dialog.convert.tabPaste"), pasteArea);
-        pasteTab.setClosable(false);
+        VBox.setVgrow(pasteArea, Priority.ALWAYS);
 
-        TextField fileField = new TextField();
-        fileField.setEditable(false);
-        fileField.setPromptText(I18n.t("dialog.convert.noFileChosen"));
-        Button browseButton = new Button(I18n.t("dialog.convert.browse"));
-        HBox fileRow = new HBox(8, fileField, browseButton);
-        HBox.setHgrow(fileField, Priority.ALWAYS);
-        VBox fileTabContent = new VBox(10, fileRow);
-        fileTabContent.setPadding(new Insets(12));
-        Tab fileTab = new Tab(I18n.t("dialog.convert.tabFile"), fileTabContent);
-        fileTab.setClosable(false);
+        ComboBox<NamedCharset> encodingCombo = new ComboBox<>(FXCollections.observableArrayList(CHARSETS));
+        encodingCombo.setValue(CHARSETS.get(0));
 
-        TextField urlField = new TextField();
-        urlField.setPromptText(I18n.t("dialog.convert.urlPlaceholder"));
-        VBox urlTabContent = new VBox(10, urlField);
-        urlTabContent.setPadding(new Insets(12));
-        Tab urlTab = new Tab(I18n.t("dialog.convert.tabUrl"), urlTabContent);
-        urlTab.setClosable(false);
+        // Tracks which source string the paste area currently shows a preview of, so unrelated
+        // events (e.g. re-focusing the field without changing it) don't refetch needlessly, and
+        // so we know whether the area holds a preview (not to be treated as pasted input) or the
+        // user's own text.
+        AtomicReference<String> previewedSource = new AtomicReference<>("");
+        Runnable loadPreview = () -> {
+            String sourceText = sourceField.getText();
+            if (sourceText == null || sourceText.isBlank()) {
+                if (!previewedSource.get().isEmpty()) pasteArea.clear();
+                previewedSource.set("");
+                pasteArea.setEditable(true);
+                return;
+            }
+            if (sourceText.equals(previewedSource.get())) return;
+            previewedSource.set(sourceText);
+            Charset charset = encodingCombo.getValue().charset();
+            pasteArea.setEditable(false);
+            pasteArea.setText(I18n.t("dialog.convert.loadingPreview"));
+            Thread worker = new Thread(() -> {
+                try {
+                    byte[] bytes;
+                    String fileNameHint;
+                    if (isUrl(sourceText)) {
+                        bytes = download(sourceText);
+                        fileNameHint = lastUrlSegment(sourceText);
+                    } else {
+                        Path path = Path.of(sourceText);
+                        if (!Files.exists(path)) throw new IOException(I18n.t("error.convert.fileNotFound", sourceText));
+                        bytes = Files.readAllBytes(path);
+                        fileNameHint = path.getFileName().toString();
+                    }
+                    TableInputFormat detected = TableConverter.detect(bytes, fileNameHint, charset);
+                    String sample = detected == TableInputFormat.XLSX
+                            ? I18n.t("dialog.convert.binaryPreviewPlaceholder", bytes.length)
+                            : headSample(new String(bytes, charset));
+                    Platform.runLater(() -> pasteArea.setText(sample));
+                } catch (IOException | InterruptedException | InvalidPathException ex) {
+                    LOGGER.warn("Could not load preview for {}", sourceText, ex);
+                    Platform.runLater(() -> pasteArea.setText(I18n.t("error.convert.previewFailed", ex.getMessage())));
+                }
+            }, "dfiles-convert-preview");
+            worker.setDaemon(true);
+            worker.start();
+        };
+        sourceField.setOnAction(e -> loadPreview.run());
+        sourceField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) loadPreview.run();
+        });
 
-        TabPane sourceTabs = new TabPane(pasteTab, fileTab, urlTab);
-        sourceTabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-        java.util.concurrent.atomic.AtomicReference<Path> chosenFile = new java.util.concurrent.atomic.AtomicReference<>();
         browseButton.setOnAction(e -> {
             FileChooser chooser = new FileChooser();
-            chooser.setTitle(I18n.t("dialog.convert.tabFile"));
+            chooser.setTitle(I18n.t("dialog.convert.source"));
             chooser.getExtensionFilters().addAll(
                     new FileChooser.ExtensionFilter(I18n.t("dialog.convert.filterSupported"),
                             "*.csv", "*.tsv", "*.json", "*.xml", "*.md", "*.markdown", "*.yaml", "*.yml", "*.xlsx"),
                     new FileChooser.ExtensionFilter(I18n.t("dialog.convert.filterAll"), "*.*"));
             java.io.File file = chooser.showOpenDialog(owner);
             if (file == null) return;
-            chosenFile.set(file.toPath());
-            fileField.setText(file.getAbsolutePath());
+            sourceField.setText(file.getAbsolutePath());
+            loadPreview.run();
         });
-
-        ComboBox<NamedCharset> encodingCombo = new ComboBox<>(FXCollections.observableArrayList(CHARSETS));
-        encodingCombo.setValue(CHARSETS.get(0));
 
         ComboBox<TableInputFormat> inputFormatCombo = new ComboBox<>(FXCollections.observableArrayList(TableInputFormat.values()));
         inputFormatCombo.setValue(TableInputFormat.AUTO);
@@ -160,11 +203,10 @@ public final class ConvertDialog {
 
         Runnable autoFillTableName = () -> {
             if (tableNameEdited[0]) return;
+            String sourceText = sourceField.getText();
             String hint = null;
-            if (sourceTabs.getSelectionModel().getSelectedItem() == fileTab && chosenFile.get() != null) {
-                hint = baseName(chosenFile.get().getFileName().toString());
-            } else if (sourceTabs.getSelectionModel().getSelectedItem() == urlTab && !urlField.getText().isBlank()) {
-                hint = baseName(lastUrlSegment(urlField.getText()));
+            if (sourceText != null && !sourceText.isBlank()) {
+                hint = isUrl(sourceText) ? baseName(lastUrlSegment(sourceText)) : baseName(fileNameOf(sourceText));
             }
             if (hint != null && !hint.isBlank()) {
                 tableNameEdited[0] = false; // setText below fires the listener; restore after
@@ -172,13 +214,11 @@ public final class ConvertDialog {
                 tableNameEdited[0] = false;
             }
         };
-        fileField.textProperty().addListener((obs, old, val) -> autoFillTableName.run());
-        urlField.textProperty().addListener((obs, old, val) -> autoFillTableName.run());
+        sourceField.textProperty().addListener((obs, old, val) -> autoFillTableName.run());
 
         if (prefillFile != null) {
-            sourceTabs.getSelectionModel().select(fileTab);
-            chosenFile.set(prefillFile);
-            fileField.setText(prefillFile.toAbsolutePath().toString());
+            sourceField.setText(prefillFile.toAbsolutePath().toString());
+            loadPreview.run();
         }
 
         GridPane optionsGrid = new GridPane();
@@ -215,9 +255,9 @@ public final class ConvertDialog {
 
         // Exactly one of these is populated after a successful conversion, depending on whether
         // the chosen output format is text or the one binary format (XLSX).
-        java.util.concurrent.atomic.AtomicReference<String> lastTextResult = new java.util.concurrent.atomic.AtomicReference<>();
-        java.util.concurrent.atomic.AtomicReference<byte[]> lastBytesResult = new java.util.concurrent.atomic.AtomicReference<>();
-        java.util.concurrent.atomic.AtomicReference<Path> lastSourcePath = new java.util.concurrent.atomic.AtomicReference<>();
+        AtomicReference<String> lastTextResult = new AtomicReference<>();
+        AtomicReference<byte[]> lastBytesResult = new AtomicReference<>();
+        AtomicReference<Path> lastSourcePath = new AtomicReference<>();
 
         convertButton.setOnAction(e -> {
             errorLabel.setText("");
@@ -229,7 +269,9 @@ public final class ConvertDialog {
             String tableName = tableNameField.getText();
             boolean includeCreateTable = includeCreateTableCheck.isSelected();
             SqlDialect dialect = dialectCombo.getValue();
-            Tab activeTab = sourceTabs.getSelectionModel().getSelectedItem();
+            String sourceText = sourceField.getText();
+            String pastedText = pasteArea.getText();
+            boolean hasSource = sourceText != null && !sourceText.isBlank();
 
             convertButton.setDisable(true);
             Thread worker = new Thread(() -> {
@@ -237,24 +279,21 @@ public final class ConvertDialog {
                     byte[] rawBytes;
                     String fileNameHint;
                     Path sourcePath = null;
-                    if (activeTab == pasteTab) {
-                        String text = pasteArea.getText();
-                        if (text == null || text.isBlank()) {
+                    if (!hasSource) {
+                        if (pastedText == null || pastedText.isBlank()) {
                             throw new IOException(I18n.t("error.convert.noInput"));
                         }
-                        rawBytes = text.getBytes(charset);
+                        rawBytes = pastedText.getBytes(charset);
                         fileNameHint = null;
-                    } else if (activeTab == fileTab) {
-                        Path path = chosenFile.get();
-                        if (path == null) throw new IOException(I18n.t("error.convert.noInput"));
+                    } else if (isUrl(sourceText)) {
+                        rawBytes = download(sourceText);
+                        fileNameHint = lastUrlSegment(sourceText);
+                    } else {
+                        Path path = Path.of(sourceText);
+                        if (!Files.exists(path)) throw new IOException(I18n.t("error.convert.fileNotFound", sourceText));
                         rawBytes = Files.readAllBytes(path);
                         fileNameHint = path.getFileName().toString();
                         sourcePath = path;
-                    } else {
-                        String url = urlField.getText();
-                        if (url == null || url.isBlank()) throw new IOException(I18n.t("error.convert.noInput"));
-                        rawBytes = download(url);
-                        fileNameHint = lastUrlSegment(url);
                     }
 
                     TableInputFormat resolvedFormat = requestedFormat == TableInputFormat.AUTO
@@ -287,7 +326,7 @@ public final class ConvertDialog {
                             convertButton.setDisable(false);
                         });
                     }
-                } catch (IOException | InterruptedException ex) {
+                } catch (IOException | InterruptedException | InvalidPathException ex) {
                     LOGGER.warn("Convert failed", ex);
                     Platform.runLater(() -> {
                         errorLabel.setText(ex.getMessage());
@@ -344,21 +383,37 @@ public final class ConvertDialog {
         buttonBar.setAlignment(Pos.CENTER_LEFT);
         buttonBar.setPadding(new Insets(4, 0, 0, 0));
 
-        VBox centerBox = new VBox(8, sourceTabs, optionsGrid, buttonBar, previewArea);
+        VBox sourceBox = new VBox(6, new Label(I18n.t("dialog.convert.source")), sourceRow, pasteArea);
+        VBox.setVgrow(sourceBox, Priority.ALWAYS);
+        VBox.setVgrow(pasteArea, Priority.ALWAYS);
+
+        VBox centerBox = new VBox(8, sourceBox, optionsGrid, buttonBar, previewArea);
         centerBox.setPadding(new Insets(14));
-        VBox.setVgrow(sourceTabs, Priority.SOMETIMES);
+        VBox.setVgrow(sourceBox, Priority.SOMETIMES);
         VBox.setVgrow(previewArea, Priority.ALWAYS);
 
         BorderPane dialogRoot = new BorderPane();
         dialogRoot.setCenter(centerBox);
 
+        // Half the screen, centered. Computed explicitly rather than via Stage.centerOnScreen(),
+        // which centers against whatever width/height the stage happens to already have at the
+        // moment it's called — a value that isn't reliably settled yet immediately after show(),
+        // and produced a visibly-off (non-vertically-centered) position in testing.
+        Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+        double width = screenBounds.getWidth() * 0.5;
+        double height = screenBounds.getHeight() * 0.5;
+        double x = screenBounds.getMinX() + (screenBounds.getWidth() - width) / 2;
+        double y = screenBounds.getMinY() + (screenBounds.getHeight() - height) / 2;
+
         Stage dialogStage = new Stage();
-        Scene scene = new Scene(dialogRoot, 760, 640);
+        Scene scene = new Scene(dialogRoot, width, height);
         scene.getStylesheets().add(ConvertDialog.class.getResource("/css/dfiles.css").toExternalForm());
         dialogStage.setScene(scene);
         dialogStage.setTitle(I18n.t("dialog.convert.title"));
         dialogStage.initOwner(owner);
         dialogStage.initModality(Modality.WINDOW_MODAL);
+        dialogStage.setX(x);
+        dialogStage.setY(y);
         dialogStage.show();
     }
 
@@ -380,6 +435,10 @@ public final class ConvertDialog {
         return response.body();
     }
 
+    private static boolean isUrl(String text) {
+        return URL_PREFIX.matcher(text.strip()).find();
+    }
+
     private static boolean isSamePath(Path a, Path b) {
         try {
             return Files.exists(a) && Files.exists(b) && Files.isSameFile(a, b);
@@ -393,10 +452,34 @@ public final class ConvertDialog {
         return m.find() ? m.group(1) : "download";
     }
 
+    private static String fileNameOf(String pathText) {
+        try {
+            Path fileName = Path.of(pathText).getFileName();
+            return fileName == null ? pathText : fileName.toString();
+        } catch (InvalidPathException e) {
+            return pathText;
+        }
+    }
+
+    /** The first {@value #PREVIEW_MAX_LINES} lines of {@code text}, with a trailing marker if
+     * there was more — used only for the source-preview area, never for the actual conversion. */
+    private static String headSample(String text) {
+        String[] lines = text.split("\r\n|\r|\n", -1);
+        StringBuilder sb = new StringBuilder();
+        int shown = Math.min(lines.length, PREVIEW_MAX_LINES);
+        for (int i = 0; i < shown; i++) {
+            sb.append(lines[i]);
+            if (i < shown - 1) sb.append('\n');
+        }
+        if (lines.length > PREVIEW_MAX_LINES) sb.append("\n…");
+        return sb.toString();
+    }
+
     private static String extensionFor(TableOutputFormat format) {
         return switch (format) {
             case SQL -> "sql";
             case CSV -> "csv";
+            case TSV -> "tsv";
             case JSON -> "json";
             case XML -> "xml";
             case HTML_TABLE -> "html";

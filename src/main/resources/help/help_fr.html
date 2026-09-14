@@ -390,15 +390,18 @@
         <li><strong>Excel (.xlsx)</strong> — la première feuille, première ligne comme en-tête</li>
     </ul>
     <p>
-        Trois onglets choisissent la provenance des données — <strong>Coller du texte</strong>,
-        <strong>Fichier local</strong> ou <strong>URL</strong> — ainsi qu'un choix d'encodage de caractères
-        (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) pour les formats textuels. Le <strong>format
-        d'entrée</strong> peut rester sur <strong>Auto-detect</strong>, qui analyse le contenu, ou être
-        défini explicitement.
+        Un seul champ <strong>Fichier local ou URL</strong> accepte un chemin local (ou un chemin choisi
+        via <strong>Parcourir…</strong>) ou une adresse web ; laissez-le vide et la grande zone de texte
+        en dessous devient une simple zone de collage. Remplir le champ rend cette même zone en lecture
+        seule et y charge un aperçu-échantillon du contenu du fichier ou de l'URL — Convertir relit
+        toujours la source complète depuis le début plutôt que de réutiliser l'échantillon. Un choix
+        d'encodage de caractères (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) s'applique aux formats
+        textuels, et le <strong>format d'entrée</strong> peut rester sur <strong>Auto-detect</strong>,
+        qui analyse le contenu, ou être défini explicitement.
     </p>
     <p>
-        Le <strong>format de sortie</strong> peut être SQL, CSV, JSON, XML, un tableau HTML, un tableau
-        Markdown, YAML ou Excel. Pour SQL, un sélecteur de <strong>dialecte SQL</strong> choisit la base de
+        Le <strong>format de sortie</strong> peut être SQL, CSV, TSV, JSON, XML, un tableau HTML, un
+        tableau Markdown, YAML ou Excel. Pour SQL, un sélecteur de <strong>dialecte SQL</strong> choisit la base de
         données cible — <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>,
         <strong>Oracle</strong> ou <strong>Microsoft SQL Server</strong> — car elles diffèrent
         considérablement : noms des types de colonnes, façon de démarrer une transaction, et façon de

@@ -384,15 +384,18 @@
         <li><strong>Excel (.xlsx)</strong> — a primeira planilha, com a primeira linha como cabeçalho</li>
     </ul>
     <p>
-        Três abas escolhem de onde vêm os dados — <strong>Colar texto</strong>, <strong>Arquivo
-        local</strong> ou <strong>URL</strong> — junto com uma escolha de codificação de caracteres
-        (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) para os formatos baseados em texto. O
-        <strong>formato de entrada</strong> pode ficar em <strong>Auto-detect</strong>, que analisa o
-        conteúdo, ou ser definido explicitamente.
+        Um único campo <strong>Arquivo local ou URL</strong> aceita um caminho local (ou um escolhido com
+        <strong>Procurar…</strong>) ou um endereço da web; deixe-o em branco e a grande caixa de texto
+        abaixo funciona como uma área normal para colar texto. Preencher o campo torna essa mesma caixa
+        somente leitura e carrega uma pré-visualização de amostra do conteúdo do arquivo ou da URL nela —
+        o Converter sempre lê a fonte completa novamente, em vez de reutilizar a amostra. Uma escolha de
+        codificação de caracteres (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252) se aplica aos formatos
+        baseados em texto, e o <strong>formato de entrada</strong> pode ficar em <strong>Auto-detect</strong>,
+        que analisa o conteúdo, ou ser definido explicitamente.
     </p>
     <p>
-        O <strong>formato de saída</strong> pode ser SQL, CSV, JSON, XML, uma tabela HTML, uma tabela
-        Markdown, YAML ou Excel. Para SQL, um seletor de <strong>dialeto SQL</strong> escolhe o banco de
+        O <strong>formato de saída</strong> pode ser SQL, CSV, TSV, JSON, XML, uma tabela HTML, uma
+        tabela Markdown, YAML ou Excel. Para SQL, um seletor de <strong>dialeto SQL</strong> escolhe o banco de
         dados de destino — <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>,
         <strong>Oracle</strong> ou <strong>Microsoft SQL Server</strong> — já que eles discordam bastante:
         nomes de tipos de coluna, como iniciar uma transação, e como eliminar e recriar uma tabela com
