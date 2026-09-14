@@ -2,6 +2,7 @@ package com.dfiles.ui;
 
 import com.dfiles.i18n.I18n;
 import com.dfiles.model.TableData;
+import com.dfiles.service.SqlDialect;
 import com.dfiles.service.TableConverter;
 import com.dfiles.service.TableInputFormat;
 import com.dfiles.service.TableOutputFormat;
@@ -47,10 +48,11 @@ import java.util.regex.Pattern;
 
 /**
  * The "Convert" dialog: turns pasted text, a local file, or a downloaded URL — in CSV, TSV, JSON,
- * Markdown-table, YAML, or Excel (.xlsx) format — into SQL or CSV, inspired by
- * <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>. Every input format can
- * produce every output format, since both sides go through the common {@link TableData}
- * intermediate form in {@link TableConverter}.
+ * XML, Markdown-table, YAML, or Excel (.xlsx) format — into SQL (for a choice of SQLite, MySQL,
+ * PostgreSQL, Oracle, or Microsoft SQL Server), CSV, JSON, XML, an HTML table, a Markdown table,
+ * YAML, or Excel, inspired by <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
+ * Every input format can produce every output format, since both sides go through the common
+ * {@link TableData} intermediate form in {@link TableConverter}.
  *
  * <p>The source (pasted text, chosen file, or downloaded bytes) is only ever read, never
  * modified: results are written to a brand-new file chosen via {@link FileChooser}, and choosing
@@ -120,7 +122,7 @@ public final class ConvertDialog {
             chooser.setTitle(I18n.t("dialog.convert.tabFile"));
             chooser.getExtensionFilters().addAll(
                     new FileChooser.ExtensionFilter(I18n.t("dialog.convert.filterSupported"),
-                            "*.csv", "*.tsv", "*.json", "*.md", "*.markdown", "*.yaml", "*.yml", "*.xlsx"),
+                            "*.csv", "*.tsv", "*.json", "*.xml", "*.md", "*.markdown", "*.yaml", "*.yml", "*.xlsx"),
                     new FileChooser.ExtensionFilter(I18n.t("dialog.convert.filterAll"), "*.*"));
             java.io.File file = chooser.showOpenDialog(owner);
             if (file == null) return;
@@ -143,17 +145,18 @@ public final class ConvertDialog {
         Label tableNameLabel = new Label(I18n.t("dialog.convert.tableName"));
         javafx.scene.control.CheckBox includeCreateTableCheck = new javafx.scene.control.CheckBox(I18n.t("dialog.convert.includeCreateTable"));
         includeCreateTableCheck.setSelected(true);
-        Runnable syncTableNameVisibility = () -> {
-            boolean needsName = outputFormatCombo.getValue() == TableOutputFormat.SQL;
-            tableNameLabel.setVisible(needsName);
-            tableNameLabel.setManaged(needsName);
-            tableNameField.setVisible(needsName);
-            tableNameField.setManaged(needsName);
-            includeCreateTableCheck.setVisible(needsName);
-            includeCreateTableCheck.setManaged(needsName);
+        Label dialectLabel = new Label(I18n.t("dialog.convert.sqlDialect"));
+        ComboBox<SqlDialect> dialectCombo = new ComboBox<>(FXCollections.observableArrayList(SqlDialect.values()));
+        dialectCombo.setValue(SqlDialect.SQLITE);
+        Runnable syncSqlOptionsVisibility = () -> {
+            boolean isSql = outputFormatCombo.getValue() == TableOutputFormat.SQL;
+            for (javafx.scene.Node n : List.of(tableNameLabel, tableNameField, includeCreateTableCheck, dialectLabel, dialectCombo)) {
+                n.setVisible(isSql);
+                n.setManaged(isSql);
+            }
         };
-        outputFormatCombo.valueProperty().addListener((obs, old, val) -> syncTableNameVisibility.run());
-        syncTableNameVisibility.run();
+        outputFormatCombo.valueProperty().addListener((obs, old, val) -> syncSqlOptionsVisibility.run());
+        syncSqlOptionsVisibility.run();
 
         Runnable autoFillTableName = () -> {
             if (tableNameEdited[0]) return;
@@ -186,7 +189,7 @@ public final class ConvertDialog {
                 new Label(I18n.t("dialog.convert.inputFormat")), inputFormatCombo);
         optionsGrid.addRow(1, new Label(I18n.t("dialog.convert.outputFormat")), outputFormatCombo,
                 tableNameLabel, tableNameField);
-        optionsGrid.add(includeCreateTableCheck, 3, 2);
+        optionsGrid.addRow(2, dialectLabel, dialectCombo, includeCreateTableCheck);
         for (int i = 0; i < 4; i++) {
             ColumnConstraints cc = new ColumnConstraints();
             if (i % 2 == 1) { cc.setHgrow(Priority.ALWAYS); }
@@ -210,7 +213,10 @@ public final class ConvertDialog {
         saveAsButton.setDisable(true);
         copyButton.setDisable(true);
 
-        java.util.concurrent.atomic.AtomicReference<String> lastResult = new java.util.concurrent.atomic.AtomicReference<>();
+        // Exactly one of these is populated after a successful conversion, depending on whether
+        // the chosen output format is text or the one binary format (XLSX).
+        java.util.concurrent.atomic.AtomicReference<String> lastTextResult = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<byte[]> lastBytesResult = new java.util.concurrent.atomic.AtomicReference<>();
         java.util.concurrent.atomic.AtomicReference<Path> lastSourcePath = new java.util.concurrent.atomic.AtomicReference<>();
 
         convertButton.setOnAction(e -> {
@@ -222,6 +228,7 @@ public final class ConvertDialog {
             TableOutputFormat outputFormat = outputFormatCombo.getValue();
             String tableName = tableNameField.getText();
             boolean includeCreateTable = includeCreateTableCheck.isSelected();
+            SqlDialect dialect = dialectCombo.getValue();
             Tab activeTab = sourceTabs.getSelectionModel().getSelectedItem();
 
             convertButton.setDisable(true);
@@ -254,17 +261,32 @@ public final class ConvertDialog {
                             ? TableConverter.detect(rawBytes, fileNameHint, charset)
                             : requestedFormat;
                     TableData table = TableConverter.parse(rawBytes, charset, resolvedFormat);
-                    String output = TableConverter.write(table, outputFormat, tableName, includeCreateTable);
 
                     Path finalSourcePath = sourcePath;
-                    Platform.runLater(() -> {
-                        previewArea.setText(output);
-                        lastResult.set(output);
-                        lastSourcePath.set(finalSourcePath);
-                        saveAsButton.setDisable(false);
-                        copyButton.setDisable(false);
-                        convertButton.setDisable(false);
-                    });
+                    if (outputFormat == TableOutputFormat.XLSX) {
+                        byte[] xlsxBytes = TableConverter.writeXlsx(table);
+                        Platform.runLater(() -> {
+                            previewArea.setText(I18n.t("dialog.convert.xlsxPreviewPlaceholder",
+                                    table.rows().size(), table.columns().size()));
+                            lastBytesResult.set(xlsxBytes);
+                            lastTextResult.set(null);
+                            lastSourcePath.set(finalSourcePath);
+                            saveAsButton.setDisable(false);
+                            copyButton.setDisable(true); // binary output can't usefully go to a text clipboard
+                            convertButton.setDisable(false);
+                        });
+                    } else {
+                        String output = TableConverter.write(table, outputFormat, tableName, includeCreateTable, dialect);
+                        Platform.runLater(() -> {
+                            previewArea.setText(output);
+                            lastTextResult.set(output);
+                            lastBytesResult.set(null);
+                            lastSourcePath.set(finalSourcePath);
+                            saveAsButton.setDisable(false);
+                            copyButton.setDisable(false);
+                            convertButton.setDisable(false);
+                        });
+                    }
                 } catch (IOException | InterruptedException ex) {
                     LOGGER.warn("Convert failed", ex);
                     Platform.runLater(() -> {
@@ -278,16 +300,16 @@ public final class ConvertDialog {
         });
 
         copyButton.setOnAction(e -> {
-            if (lastResult.get() == null) return;
+            if (lastTextResult.get() == null) return;
             ClipboardContent content = new ClipboardContent();
-            content.putString(lastResult.get());
+            content.putString(lastTextResult.get());
             Clipboard.getSystemClipboard().setContent(content);
         });
 
         saveAsButton.setOnAction(e -> {
-            if (lastResult.get() == null) return;
+            if (lastTextResult.get() == null && lastBytesResult.get() == null) return;
             TableOutputFormat outputFormat = outputFormatCombo.getValue();
-            String extension = outputFormat == TableOutputFormat.SQL ? "sql" : "csv";
+            String extension = extensionFor(outputFormat);
             FileChooser chooser = new FileChooser();
             chooser.setTitle(I18n.t("dialog.convert.saveAs"));
             String suggested = (tableNameField.getText().isBlank() ? "converted" : tableNameField.getText()) + "." + extension;
@@ -304,7 +326,11 @@ public final class ConvertDialog {
                 return;
             }
             try {
-                Files.writeString(targetPath, lastResult.get(), StandardCharsets.UTF_8);
+                if (lastBytesResult.get() != null) {
+                    Files.write(targetPath, lastBytesResult.get());
+                } else {
+                    Files.writeString(targetPath, lastTextResult.get(), StandardCharsets.UTF_8);
+                }
                 errorLabel.setStyle("-fx-text-fill: #2e7d32;");
                 errorLabel.setText(I18n.t("status.convert.saved", targetPath.getFileName().toString()));
             } catch (IOException ex) {
@@ -365,6 +391,19 @@ public final class ConvertDialog {
     private static String lastUrlSegment(String url) {
         var m = URL_LAST_SEGMENT.matcher(url);
         return m.find() ? m.group(1) : "download";
+    }
+
+    private static String extensionFor(TableOutputFormat format) {
+        return switch (format) {
+            case SQL -> "sql";
+            case CSV -> "csv";
+            case JSON -> "json";
+            case XML -> "xml";
+            case HTML_TABLE -> "html";
+            case MARKDOWN_TABLE -> "md";
+            case YAML -> "yaml";
+            case XLSX -> "xlsx";
+        };
     }
 
     private static String baseName(String fileName) {

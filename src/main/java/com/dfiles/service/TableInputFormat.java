@@ -10,6 +10,7 @@ public enum TableInputFormat {
     CSV("CSV"),
     TSV("TSV"),
     JSON("JSON"),
+    XML("XML"),
     MARKDOWN_TABLE("Markdown table"),
     YAML("YAML"),
     XLSX("Excel (.xlsx)");

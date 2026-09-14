@@ -363,8 +363,8 @@
     <h2>Convertir datos</h2>
     <p>
         El botón <strong>⇄ Convertir</strong> de la barra de herramientas (o <strong>Convertir…</strong> en
-        el menú contextual de un archivo compatible) abre un diálogo que transforma datos tabulares en SQL
-        o CSV, inspirado en <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
+        el menú contextual de un archivo compatible) abre un diálogo que transforma datos tabulares de un
+        formato a otro, inspirado en <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
     </p>
     <p>Formatos de entrada admitidos:</p>
     <ul>
@@ -372,6 +372,9 @@
             primera fila como encabezado</li>
         <li><strong>JSON</strong> — un array de objetos planos (o un único objeto, tratado como una fila);
             las columnas son la unión de las claves de todos los objetos, en el orden en que aparecen</li>
+        <li><strong>XML</strong> — elementos repetidos bajo la raíz (la etiqueta más común entre los hijos
+            directos de la raíz se lee como una fila por cada aparición); los elementos hijos de cada fila
+            se convierten en columnas</li>
         <li><strong>Tabla Markdown</strong> — una tabla estándar con pipes <code>| --- | --- |</code></li>
         <li><strong>YAML</strong> — una lista plana de mapeos planos (<code>- name: Alice</code> /
             <code>&nbsp;&nbsp;age: 30</code>); no se admiten estructuras anidadas, estilo flow ni archivos
@@ -386,19 +389,36 @@
         contenido, o fijarse explícitamente.
     </p>
     <p>
-        El <strong>formato de salida</strong> es SQL o CSV. La salida SQL es una única sentencia
-        <code>INSERT</code> que cubre todas las filas, envuelta en <code>BEGIN TRANSACTION;</code> /
-        <code>COMMIT;</code>, con tipos de columna (<code>INTEGER</code>, <code>REAL</code> o
-        <code>TEXT</code>) inferidos a partir de los datos. Se puede incluir o excluir una sentencia
-        <code>CREATE OR REPLACE TABLE</code> opcional (para insertar en una tabla ya existente) — ten en
-        cuenta que esa sintaxis exacta la admiten MariaDB, DuckDB y Snowflake, pero no SQLite ni el
-        MySQL/PostgreSQL estándar.
+        El <strong>formato de salida</strong> puede ser SQL, CSV, JSON, XML, una tabla HTML, una tabla
+        Markdown, YAML o Excel. Para SQL, un selector de <strong>dialecto SQL</strong> elige la base de
+        datos destino — <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>,
+        <strong>Oracle</strong> o <strong>Microsoft SQL Server</strong> — ya que difieren bastante entre
+        sí: nombres de tipos de columna, cómo iniciar una transacción, y cómo eliminar y recrear una tabla
+        de forma segura (ninguno admite realmente la sintaxis literal <code>CREATE OR REPLACE TABLE</code>,
+        así que cada dialecto genera su propio modismo correcto — para Oracle es un pequeño bloque PL/SQL,
+        ya que Oracle no tiene <code>DROP TABLE IF EXISTS</code>). Todo el conjunto de datos se convierte
+        en un único <code>INSERT</code> envuelto en una transacción cuando la base de datos destino lo
+        permite; Microsoft SQL Server limita un único <code>INSERT ... VALUES</code> a 1000 filas, así que
+        los resultados más grandes se dividen en varios, y Oracle no tiene ninguna lista <code>VALUES</code>
+        multifila, así que se reescribe como <code>INSERT ALL</code>. Los tipos de columna se infieren a
+        partir de los datos, y el paso <code>CREATE TABLE</code> (en la forma que necesite el dialecto
+        elegido) se puede incluir o excluir, para insertar en una tabla que ya existe.
     </p>
     <div class="tip">
         El origen — texto pegado, un archivo elegido o una URL descargada — solo se lee. Los resultados se
         escriben en un archivo completamente nuevo que eliges con <strong>Guardar como…</strong>; elegir
         exactamente el archivo de origen como destino de guardado se rechaza.
     </div>
+    <p>
+        Para una corrección rápida, haz clic derecho en cualquier archivo <code>.csv</code> para
+        <strong>Convertir CSV latino a inglés…</strong>: transforma un CSV de estilo europeo continental
+        (<code>;</code> como separador de campos, <code>,</code> como marca decimal — p. ej.
+        <code>1.234,56</code>) en el equivalente de estilo inglés (separadores <code>,</code>, decimales
+        <code>.</code> — <code>1234.56</code>), guardando el resultado como <code>&lt;nombre&gt;_en.csv</code>
+        junto al original sin tocarlo. Solo se reinterpretan las celdas que parecen un número correctamente
+        formateado — el texto normal (incluida una coma literal dentro de un campo entre comillas) se deja
+        exactamente igual.
+    </p>
 </section>
 
 <section id="layout">

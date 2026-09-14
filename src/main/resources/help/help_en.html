@@ -353,14 +353,17 @@
     <h2>Convert data</h2>
     <p>
         The <strong>⇄ Convert</strong> toolbar button (or <strong>Convert…</strong> in the right-click
-        menu of a supported file) opens a dialog that turns tabular data into SQL or CSV, inspired by
-        <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
+        menu of a supported file) opens a dialog that turns tabular data from one format into another,
+        inspired by <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
     </p>
     <p>Supported input formats:</p>
     <ul>
         <li><strong>CSV</strong> and <strong>TSV</strong> — comma- or tab-separated, first row as header</li>
         <li><strong>JSON</strong> — an array of flat objects (or a single object, treated as one row);
             columns are the union of every object's keys, in the order first seen</li>
+        <li><strong>XML</strong> — repeated elements under the root (whichever tag is most common among
+            the root's direct children is read as one row per occurrence); each row's own child
+            elements become columns</li>
         <li><strong>Markdown table</strong> — a standard <code>| --- | --- |</code> pipe table</li>
         <li><strong>YAML</strong> — a flat list of flat mappings (<code>- name: Alice</code> /
             <code>&nbsp;&nbsp;age: 30</code>); nested structures, flow style, and multi-document files
@@ -374,18 +377,35 @@
         left on <strong>Auto-detect</strong>, which sniffs the content, or set explicitly.
     </p>
     <p>
-        <strong>Output format</strong> is SQL or CSV. SQL output is a single <code>INSERT</code>
-        statement covering every row, wrapped in <code>BEGIN TRANSACTION;</code> / <code>COMMIT;</code>,
-        with column types (<code>INTEGER</code>, <code>REAL</code>, or <code>TEXT</code>) inferred from
-        the data. An optional <code>CREATE OR REPLACE TABLE</code> statement can be included or left out
-        (for inserting into a table that already exists) — note that exact syntax is supported by
-        MariaDB, DuckDB, and Snowflake, but not by SQLite or standard MySQL/PostgreSQL.
+        <strong>Output format</strong> is any of SQL, CSV, JSON, XML, an HTML table, a Markdown table,
+        YAML, or Excel. For SQL, a <strong>SQL dialect</strong> selector chooses the target database —
+        <strong>SQLite</strong>, <strong>MySQL</strong>, <strong>PostgreSQL</strong>, <strong>Oracle</strong>,
+        or <strong>Microsoft SQL Server</strong> — since they disagree on quite a lot: column type names,
+        how to start a transaction, and how to safely drop-and-recreate a table (none of them actually
+        support the literal <code>CREATE OR REPLACE TABLE</code> syntax, so each dialect emits its own
+        correct idiom instead — for Oracle that's a small PL/SQL block, since Oracle has no
+        <code>DROP TABLE IF EXISTS</code>). The whole data set becomes a single <code>INSERT</code>
+        wrapped in a transaction where the target database allows it; Microsoft SQL Server caps a single
+        <code>INSERT ... VALUES</code> at 1000 rows so larger results are split across several, and
+        Oracle has no multi-row <code>VALUES</code> list at all, so it's rewritten as <code>INSERT ALL</code>
+        instead. Column types are inferred from the data, and the <code>CREATE TABLE</code> step (in
+        whatever form the chosen dialect needs) can be included or left out, for inserting into a table
+        that already exists.
     </p>
     <div class="tip">
         The source — pasted text, a chosen file, or a downloaded URL — is only ever read. Results are
         written to a brand-new file you pick with <strong>Save As…</strong>; choosing the exact source
         file as the save target is refused.
     </div>
+    <p>
+        For a quicker one-off fix, right-click any <code>.csv</code> file for <strong>Convert Latin CSV
+        to English…</strong>: it turns a continental-European-style CSV (<code>;</code> as the field
+        separator, <code>,</code> as the decimal mark — e.g. <code>1.234,56</code>) into the
+        English-style equivalent (<code>,</code> separators, <code>.</code> decimals — <code>1234.56</code>),
+        saving the result as <code>&lt;name&gt;_en.csv</code> next to the original without touching it.
+        Only cells that look like a properly formatted number are reinterpreted — ordinary text
+        (including a literal comma inside a quoted field) is left exactly as it is.
+    </p>
 </section>
 
 <section id="layout">

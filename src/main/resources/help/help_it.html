@@ -368,7 +368,7 @@
     <p>
         Il pulsante <strong>⇄ Converti</strong> della barra degli strumenti (o <strong>Converti…</strong>
         nel menu contestuale di un file supportato) apre una finestra di dialogo che trasforma dati
-        tabulari in SQL o CSV, ispirata a
+        tabulari da un formato a un altro, ispirata a
         <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
     </p>
     <p>Formati di input supportati:</p>
@@ -377,6 +377,9 @@
             riga come intestazione</li>
         <li><strong>JSON</strong> — un array di oggetti piatti (o un singolo oggetto, trattato come una
             riga); le colonne sono l'unione delle chiavi di tutti gli oggetti, nell'ordine in cui compaiono</li>
+        <li><strong>XML</strong> — elementi ripetuti sotto la radice (il tag più comune tra i figli
+            diretti della radice viene letto come una riga per ogni occorrenza); gli elementi figli di
+            ogni riga diventano colonne</li>
         <li><strong>Tabella Markdown</strong> — una tabella standard con pipe <code>| --- | --- |</code></li>
         <li><strong>YAML</strong> — un elenco piatto di mappature piatte (<code>- name: Alice</code> /
             <code>&nbsp;&nbsp;age: 30</code>); strutture annidate, stile flow e file multi-documento non
@@ -391,12 +394,21 @@
         esplicitamente.
     </p>
     <p>
-        Il <strong>formato di output</strong> è SQL o CSV. L'output SQL è un'unica istruzione
-        <code>INSERT</code> che copre tutte le righe, racchiusa tra <code>BEGIN TRANSACTION;</code> e
-        <code>COMMIT;</code>, con tipi di colonna (<code>INTEGER</code>, <code>REAL</code> o
-        <code>TEXT</code>) dedotti dai dati. Un'istruzione opzionale <code>CREATE OR REPLACE TABLE</code>
-        può essere inclusa o omessa (per inserire in una tabella già esistente) — questa sintassi esatta è
-        supportata da MariaDB, DuckDB e Snowflake, ma non da SQLite né da MySQL/PostgreSQL standard.
+        Il <strong>formato di output</strong> può essere SQL, CSV, JSON, XML, una tabella HTML, una
+        tabella Markdown, YAML o Excel. Per SQL, un selettore di <strong>dialetto SQL</strong> sceglie il
+        database di destinazione — <strong>SQLite</strong>, <strong>MySQL</strong>,
+        <strong>PostgreSQL</strong>, <strong>Oracle</strong> o <strong>Microsoft SQL Server</strong> —
+        poiché differiscono parecchio: nomi dei tipi di colonna, come avviare una transazione, e come
+        eliminare e ricreare una tabella in sicurezza (nessuno di essi supporta realmente la sintassi
+        letterale <code>CREATE OR REPLACE TABLE</code>, quindi ogni dialetto genera il proprio idioma
+        corretto — per Oracle si tratta di un piccolo blocco PL/SQL, poiché Oracle non ha
+        <code>DROP TABLE IF EXISTS</code>). L'intero set di dati diventa un'unica istruzione
+        <code>INSERT</code> racchiusa in una transazione quando il database di destinazione lo consente;
+        Microsoft SQL Server limita un singolo <code>INSERT ... VALUES</code> a 1000 righe, quindi i
+        risultati più grandi vengono suddivisi in più istruzioni, e Oracle non ha alcuna lista
+        <code>VALUES</code> multi-riga, quindi viene riscritto come <code>INSERT ALL</code>. I tipi di
+        colonna vengono dedotti dai dati, e il passaggio <code>CREATE TABLE</code> (nella forma richiesta
+        dal dialetto scelto) può essere incluso o omesso, per inserire in una tabella già esistente.
     </p>
     <div class="tip">
         La fonte — testo incollato, un file scelto o un URL scaricato — viene sempre solo letta. I
@@ -404,6 +416,16 @@
         nome…</strong>; scegliere esattamente il file di origine come destinazione di salvataggio viene
         rifiutato.
     </div>
+    <p>
+        Per una correzione rapida, fai clic destro su qualsiasi file <code>.csv</code> per
+        <strong>Converti CSV latino in inglese…</strong>: trasforma un CSV in stile europeo continentale
+        (<code>;</code> come separatore di campo, <code>,</code> come segno decimale — ad es.
+        <code>1.234,56</code>) nell'equivalente in stile inglese (separatori <code>,</code>, decimali
+        <code>.</code> — <code>1234.56</code>), salvando il risultato come
+        <code>&lt;nome&gt;_en.csv</code> accanto all'originale senza modificarlo. Vengono reinterpretate
+        solo le celle che sembrano un numero formattato correttamente — il testo normale (inclusa una
+        virgola letterale all'interno di un campo tra virgolette) viene lasciato esattamente com'è.
+    </p>
 </section>
 
 <section id="layout">

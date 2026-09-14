@@ -36,12 +36,16 @@ and Italian.
   review and save it, then run it against the current folder with output streamed live. Every
   saved script is content-hashed (SHA-256) and timestamped with when it was created and last
   updated, and the generated code itself notes which provider and model produced it
-- **Data conversion** — turn CSV, TSV, JSON, a Markdown table, YAML, or an Excel (.xlsx) file into
-  SQL or CSV, from pasted text, a local file, or a URL, with a choice of source encoding
-  (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252). SQL output is a single `INSERT` wrapped in a
-  transaction, with an optional `CREATE OR REPLACE TABLE` header and inferred column types. The
-  source is only ever read — results always go to a new file you pick, never back over the
-  original. Right-click a supported file for a shortcut straight into the dialog
+- **Data conversion** — turn CSV, TSV, JSON, XML, a Markdown table, YAML, or an Excel (.xlsx) file
+  into any of those same formats, an HTML table, or SQL, from pasted text, a local file, or a URL,
+  with a choice of source encoding (UTF-8, UTF-16, Latin-1, US-ASCII, Windows-1252). SQL output
+  targets SQLite, MySQL, PostgreSQL, Oracle, or Microsoft SQL Server — each with its own idiomatic
+  drop/create statements, transaction syntax, column types, and identifier limits, since none of
+  them agree on any of that (Oracle in particular has no multi-row `INSERT ... VALUES`, so it gets
+  rewritten as `INSERT ALL`). The source is only ever read — results always go to a new file you
+  pick, never back over the original. Right-click a supported file for a shortcut straight into
+  the dialog, or a `.csv` file specifically for a one-click **Convert Latin CSV to English…**
+  (`;` separators and `,` decimals → `,` separators and `.` decimals)
 - **File properties** — Unix-style permissions, size, item counts, and modified dates, shown in the
   status bar for a single selection and in a full Properties dialog for any file or folder
 - **Internationalized UI** — English, Español, Français, Português, and Italiano, auto-detected

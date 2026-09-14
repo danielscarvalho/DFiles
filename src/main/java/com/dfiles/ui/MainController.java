@@ -11,6 +11,7 @@ import com.dfiles.service.DirectoryScanner;
 import com.dfiles.service.FileTypeUtil;
 import com.dfiles.service.FolderWatcherService;
 import com.dfiles.service.GitService;
+import com.dfiles.service.LatinCsvConverter;
 import com.dfiles.service.ScriptRunner;
 import com.dfiles.service.TerminalLauncher;
 import com.dfiles.service.TextPreviewService;
@@ -804,6 +805,11 @@ public class MainController {
                 convert.setOnAction(e -> ConvertDialog.show(stage, item.getPath()));
                 menu.getItems().add(convert);
             }
+            if (!item.isDirectory() && FileTypeUtil.isCsv(item.getPath())) {
+                MenuItem convertLatinCsv = new MenuItem(I18n.t("context.convertLatinCsv"));
+                convertLatinCsv.setOnAction(e -> convertLatinCsvToEnglish(item));
+                menu.getItems().add(convertLatinCsv);
+            }
             if (!item.isDirectory() && ArchiveService.isArchive(item.getPath())) {
                 MenuItem showContents = new MenuItem(I18n.t("context.showArchiveContents"));
                 showContents.setOnAction(e -> showArchiveDialog(item));
@@ -1193,6 +1199,63 @@ public class MainController {
             LOGGER.warn("Could not scan {} for existing versions", dir, e);
         }
         return dir.resolve(base + "_v" + next + ext);
+    }
+
+    // ---------------- Latin CSV conversion ----------------
+
+    /** Reads a {@code ;}-delimited, comma-decimal "Latin" CSV file and writes a
+     * {@code ,}-delimited, dot-decimal "English" one alongside it as {@code <name>_en.csv} (never
+     * overwriting the source, or a previous conversion of it). */
+    private void convertLatinCsvToEnglish(FileItem item) {
+        String original;
+        try {
+            original = Files.readString(item.getPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOGGER.error("Could not read file for Latin CSV conversion: {}", item.getPath(), e);
+            showError(I18n.t("dialog.error.title"), I18n.t("error.convertLatinCsv.read", e.getMessage()));
+            return;
+        }
+
+        String converted;
+        try {
+            converted = LatinCsvConverter.convertToEnglish(original);
+        } catch (IOException e) {
+            LOGGER.warn("Could not parse {} as a ';'-delimited CSV", item.getPath(), e);
+            showError(I18n.t("dialog.error.title"), I18n.t("error.convertLatinCsv.parse", e.getMessage()));
+            return;
+        }
+
+        Path target = nextSiblingPath(item.getPath(), "_en", "csv");
+        try {
+            Files.writeString(target, converted, StandardCharsets.UTF_8);
+            LOGGER.info("Saved English CSV to {}", target);
+            refresh();
+            statusLabel.setText(I18n.t("status.convertLatinCsv.saved", target.getFileName().toString()));
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+            pause.setOnFinished(e -> updateStatusBar());
+            pause.play();
+        } catch (IOException e) {
+            LOGGER.error("Could not write {}", target, e);
+            showError(I18n.t("dialog.error.title"), I18n.t("error.convertLatinCsv.write", e.getMessage()));
+        }
+    }
+
+    /** Finds the next unused "<base><suffix>.<extension>" (then "<base><suffix>_v2.<extension>",
+     * etc.) next to {@code original}, so the result of a conversion never overwrites the source
+     * file or a previous conversion of it. */
+    private Path nextSiblingPath(Path original, String suffix, String extension) {
+        Path dir = original.getParent();
+        String fileName = original.getFileName().toString();
+        int dot = fileName.lastIndexOf('.');
+        String base = dot > 0 ? fileName.substring(0, dot) : fileName;
+
+        Path candidate = dir.resolve(base + suffix + "." + extension);
+        int n = 2;
+        while (Files.exists(candidate)) {
+            candidate = dir.resolve(base + suffix + "_v" + n + "." + extension);
+            n++;
+        }
+        return candidate;
     }
 
     // ---------------- bookmarks ----------------
