@@ -89,7 +89,7 @@ mvn package
 ```
 
 This produces a self-contained runnable jar at `target/dfiles.jar` (via `maven-shade-plugin`),
-bundling JavaFX, SQLite JDBC, and Log4j2.
+bundling JavaFX, SQLite JDBC, Log4j2, Apache POI (Excel), Apache Commons CSV, Gson, and org.json.
 
 ## Run
 
