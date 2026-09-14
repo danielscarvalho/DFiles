@@ -18,6 +18,7 @@ public final class FileTypeUtil {
     private static final Set<String> TEXT = Set.of("txt", "md", "log", "csv", "yml", "yaml", "ini", "cfg", "conf");
     private static final Set<String> CODE = Set.of("java", "py", "js", "ts", "c", "cpp", "h", "hpp", "cs", "go", "rs",
             "rb", "php", "html", "css", "json", "xml", "sh", "sql", "kt", "swift");
+    private static final Set<String> CONVERTIBLE_TABLE = Set.of("csv", "tsv", "json", "md", "markdown", "yaml", "yml", "xlsx");
     // Note: these must resolve (via fontconfig) to a monochrome/outline glyph rather than
     // a color emoji font — JavaFX's text renderer cannot draw color/bitmap emoji glyphs
     // (e.g. Noto Color Emoji) at all, so codepoints like the default-presentation 📁/📄/📝
@@ -67,6 +68,13 @@ public final class FileTypeUtil {
     public static boolean isTextLike(Path path) {
         String ext = extension(path);
         return TEXT.contains(ext) || CODE.contains(ext);
+    }
+
+    /** Whether this file's extension is one the Convert dialog knows how to read (CSV, TSV,
+     * JSON, Markdown table, YAML, or Excel) — used to decide whether "Convert…" shows up in a
+     * file's context menu. */
+    public static boolean isConvertibleTable(Path path) {
+        return CONVERTIBLE_TABLE.contains(extension(path));
     }
 
     private static String extension(Path path) {

@@ -95,7 +95,7 @@ public class MainController {
     private final TextArea gitOutputArea = new TextArea();
     private final VBox gitOutputPanel = new VBox();
 
-    private Button backBtn, forwardBtn, upBtn, refreshBtn, newFolderBtn, newFileBtn, deleteBtn, terminalBtn, toggleSidebarBtn, copyListBtn;
+    private Button backBtn, forwardBtn, upBtn, refreshBtn, newFolderBtn, newFileBtn, deleteBtn, terminalBtn, toggleSidebarBtn, copyListBtn, convertBtn;
     private MenuButton gitMenu;
     private ComboBox<Locale> languageCombo;
     private Button helpBtn, aboutBtn, closeBtn;
@@ -198,6 +198,7 @@ public class MainController {
         deleteBtn = iconButton("🗑", I18n.t("toolbar.delete"), e -> deleteItems(filesPane.getSelectedItems()));
         terminalBtn = iconButton("⌥", I18n.t("toolbar.terminal"), e -> openTerminal());
         copyListBtn = iconButton("📋", I18n.t("toolbar.copyList"), e -> copyFileListToClipboard());
+        convertBtn = iconButton("⇄", I18n.t("toolbar.convert"), e -> ConvertDialog.show(stage));
 
         Label showHiddenIcon = new Label("👁");
         showHiddenIcon.getStyleClass().add("icon-glyph");
@@ -244,7 +245,7 @@ public class MainController {
         ToolBar toolBar = new ToolBar(toggleSidebarBtn, new javafx.scene.control.Separator(),
                 backBtn, forwardBtn, upBtn, refreshBtn, new javafx.scene.control.Separator(),
                 newFolderBtn, newFileBtn, deleteBtn, new javafx.scene.control.Separator(),
-                showHiddenToggle, gitMenu, terminalBtn, copyListBtn, new javafx.scene.control.Separator(),
+                showHiddenToggle, gitMenu, terminalBtn, copyListBtn, convertBtn, new javafx.scene.control.Separator(),
                 searchField, languageCombo, helpBtn, aboutBtn, closeBtn);
 
         addressField.setOnAction(e -> {
@@ -797,6 +798,11 @@ public class MainController {
                 MenuItem findReplace = new MenuItem(I18n.t("context.findReplace"));
                 findReplace.setOnAction(e -> showFindReplaceDialog(item));
                 menu.getItems().addAll(viewHeadTail, findReplace);
+            }
+            if (!item.isDirectory() && FileTypeUtil.isConvertibleTable(item.getPath())) {
+                MenuItem convert = new MenuItem(I18n.t("context.convert"));
+                convert.setOnAction(e -> ConvertDialog.show(stage, item.getPath()));
+                menu.getItems().add(convert);
             }
             if (!item.isDirectory() && ArchiveService.isArchive(item.getPath())) {
                 MenuItem showContents = new MenuItem(I18n.t("context.showArchiveContents"));
@@ -1387,6 +1393,7 @@ public class MainController {
         deleteBtn.setTooltip(new Tooltip(I18n.t("toolbar.delete")));
         terminalBtn.setTooltip(new Tooltip(I18n.t("toolbar.terminal")));
         copyListBtn.setTooltip(new Tooltip(I18n.t("toolbar.copyList")));
+        convertBtn.setTooltip(new Tooltip(I18n.t("toolbar.convert")));
         showHiddenToggle.setTooltip(new Tooltip(I18n.t("toolbar.showHidden")));
         gitMenu.setText(I18n.t("toolbar.git"));
         helpBtn.setTooltip(new Tooltip(I18n.t("toolbar.help")));

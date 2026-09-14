@@ -123,6 +123,7 @@
         <li><a href="#git">Integrazione con Git</a></li>
         <li><a href="#terminal-code">Terminale e VS Code</a></li>
         <li><a href="#scripts">Script assistiti dall'IA</a></li>
+        <li><a href="#convert">Converti dati</a></li>
         <li><a href="#layout">Layout e lingua</a></li>
         <li><a href="#shortcuts">Scorciatoie da tastiera</a></li>
         <li><a href="#data">Dove DFiles salva i dati</a></li>
@@ -359,6 +360,49 @@
         Gli script in prova vengono scritti in un file temporaneo in
         <code>&lt;cartella temporanea del sistema&gt;/.dfiles/</code> ed eliminati non appena l'esecuzione
         termina.
+    </div>
+</section>
+
+<section id="convert">
+    <h2>Converti dati</h2>
+    <p>
+        Il pulsante <strong>⇄ Converti</strong> della barra degli strumenti (o <strong>Converti…</strong>
+        nel menu contestuale di un file supportato) apre una finestra di dialogo che trasforma dati
+        tabulari in SQL o CSV, ispirata a
+        <a href="https://convertcsv.com/csv-to-sql.htm">convertcsv.com</a>.
+    </p>
+    <p>Formati di input supportati:</p>
+    <ul>
+        <li><strong>CSV</strong> e <strong>TSV</strong> — separati da virgole o tabulazioni, con la prima
+            riga come intestazione</li>
+        <li><strong>JSON</strong> — un array di oggetti piatti (o un singolo oggetto, trattato come una
+            riga); le colonne sono l'unione delle chiavi di tutti gli oggetti, nell'ordine in cui compaiono</li>
+        <li><strong>Tabella Markdown</strong> — una tabella standard con pipe <code>| --- | --- |</code></li>
+        <li><strong>YAML</strong> — un elenco piatto di mappature piatte (<code>- name: Alice</code> /
+            <code>&nbsp;&nbsp;age: 30</code>); strutture annidate, stile flow e file multi-documento non
+            sono supportati</li>
+        <li><strong>Excel (.xlsx)</strong> — il primo foglio, con la prima riga come intestazione</li>
+    </ul>
+    <p>
+        Tre schede scelgono da dove provengono i dati — <strong>Incolla testo</strong>, <strong>File
+        locale</strong> o <strong>URL</strong> — insieme a una scelta di codifica dei caratteri (UTF-8,
+        UTF-16, Latin-1, US-ASCII, Windows-1252) per i formati testuali. Il <strong>formato di input</strong>
+        può restare su <strong>Auto-detect</strong>, che analizza il contenuto, oppure essere impostato
+        esplicitamente.
+    </p>
+    <p>
+        Il <strong>formato di output</strong> è SQL o CSV. L'output SQL è un'unica istruzione
+        <code>INSERT</code> che copre tutte le righe, racchiusa tra <code>BEGIN TRANSACTION;</code> e
+        <code>COMMIT;</code>, con tipi di colonna (<code>INTEGER</code>, <code>REAL</code> o
+        <code>TEXT</code>) dedotti dai dati. Un'istruzione opzionale <code>CREATE OR REPLACE TABLE</code>
+        può essere inclusa o omessa (per inserire in una tabella già esistente) — questa sintassi esatta è
+        supportata da MariaDB, DuckDB e Snowflake, ma non da SQLite né da MySQL/PostgreSQL standard.
+    </p>
+    <div class="tip">
+        La fonte — testo incollato, un file scelto o un URL scaricato — viene sempre solo letta. I
+        risultati vengono scritti in un file completamente nuovo che scegli con <strong>Salva con
+        nome…</strong>; scegliere esattamente il file di origine come destinazione di salvataggio viene
+        rifiutato.
     </div>
 </section>
 
